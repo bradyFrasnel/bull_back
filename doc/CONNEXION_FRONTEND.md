@@ -1,6 +1,17 @@
 # 📚 Documentation Connexion Frontend - Bull ASUR
 
-## 🎯 Objectif
+## � URLs de l'API
+
+**Production** ✅ : `https://bull-back-z97c.onrender.com`
+**Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
+**Health** : `https://bull-back-z97c.onrender.com/health`
+
+**Développement** : `http://localhost:3002`
+**Réseau** : `http://0.0.0.0:3002`
+
+---
+
+## �🎯 Objectif
 
 Guide complet pour intégrer l'authentification JWT dans le frontend Bull ASUR.
 
@@ -468,7 +479,26 @@ const showUserMessage = (message, type = 'info') => {
 
 ---
 
-## 📞 Support
+## � Connexion Frontend - Bull ASUR
+
+## 🌐 Configuration de l'API
+
+**URL Production** ✅ : `https://bull-back-z97c.onrender.com`
+**URL Développement** : `http://localhost:3002`
+**Documentation Swagger** : `https://bull-back-z97c.onrender.com/api/docs`
+- **Postman** : Importer la collection depuis Swagger
+
+### **Identifiants de test**
+| Rôle | Nom d'utilisateur | Mot de passe |
+|-------|----------------|-------------|
+| Admin | `root` | `root` |
+| Secretariat | `admin` | `admin` |
+| Étudiant | `mmartin2024` | `password123` |
+| Enseignant | `jdupontweb` | `password123` |
+
+---
+
+## �� Support
 
 ### **Documentation API complète**
 - **Swagger** : http://localhost:5000/api/docs

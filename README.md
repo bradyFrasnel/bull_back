@@ -91,7 +91,12 @@ npm run start:prod
 
 ## 🌐 Accès
 
-### **API**
+### **API Production**
+- **URL principale** : https://bull-back-z97c.onrender.com
+- **Swagger** : https://bull-back-z97c.onrender.com/api/docs
+- **Health** : https://bull-back-z97c.onrender.com/health
+
+### **API Local (développement)**
 - **Local** : http://localhost:3002
 - **Réseau** : http://0.0.0.0:3002
 - **Swagger** : http://localhost:3002/api/docs
@@ -113,20 +118,18 @@ npm run start:prod
 
 ## 🚀 Déploiement
 
-### **Render.com**
-1. **Créer un compte** sur [Render](https://render.com)
-2. **Connecter GitHub** au compte Render
-3. **Créer un Web Service**
-   - Repository : bull-asur
-   - Runtime : Node
-   - Build Command : `npm install && npm run build`
-   - Start Command : `npm run start:prod`
-4. **Configurer les variables d'environnement**
-   - `DATABASE_URL` : URL de la base de données PostgreSQL
-   - `JWT_SECRET` : Clé secrète JWT
-   - `PORT` : 3002
-   - `NODE_ENV` : production
-   - `FRONTEND_URL` : URL du frontend en production
+### **Render.com** ✅ **DÉPLOYÉ**
+- **URL Production** : https://bull-back-z97c.onrender.com
+- **Swagger** : https://bull-back-z97c.onrender.com/api/docs
+- **Health** : https://bull-back-z97c.onrender.com/health
+
+**Configuration utilisée :**
+- Repository : bull_back
+- Runtime : Node
+- Build Command : `npm install && npx prisma generate && npx prisma migrate deploy && npm run build`
+- Start Command : `npm run start:prod`
+- Variables d'environnement configurées
+- Base de données PostgreSQL intégrée
 
 ### **Variables d'environnement Production**
 ```bash

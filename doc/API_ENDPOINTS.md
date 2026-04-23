@@ -1,5 +1,16 @@
 # 📡 API Endpoints Complet - Bull ASUR
 
+## 🌐 URLs de l'API
+
+**Production** ✅ : `https://bull-back-z97c.onrender.com`
+**Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
+**Health** : `https://bull-back-z97c.onrender.com/health`
+
+**Développement** : `http://localhost:3002`
+**Réseau** : `http://0.0.0.0:3002`
+
+---
+
 ## 🔐 Authentification (7 endpoints)
 
 ### **Connexion**
@@ -274,18 +285,18 @@ Content-Type: application/json
 
 ---
 
-## 📱 Configuration
+## Configuration
 
 ### **URL de base**
 ```
 Développement : http://localhost:5000
-Production    : https://api.bull-asur.fr
+Production    : https://bull-back-z97c.onrender.com
 ```
 
 ### **Documentation**
 ```
-Swagger UI : http://localhost:5000/api/docs
-OpenAPI    : http://localhost:5000/api/docs-json
+Swagger UI : https://bull-back-z97c.onrender.com/api/docs
+OpenAPI    : https://bull-back-z97c.onrender.com/api/docs-json
 ```
 
 ---

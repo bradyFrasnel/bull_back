@@ -229,12 +229,14 @@ const createEvaluation = async (evaluationData) => {
 
 ## 🎯 Points d'Accès
 
-### **URL API**
-```
-Développement : http://localhost:5000
-Production    : https://api.bull-asur.fr
-Swagger UI   : http://localhost:5000/api/docs
-```
+### 🌐 URLs de l'API
+
+**Production** ✅ : `https://bull-back-z97c.onrender.com`
+**Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
+**Health** : `https://bull-back-z97c.onrender.com/health`
+
+**Développement** : `http://localhost:3002`
+**Réseau** : `http://0.0.0.0:3002`
 
 ### **Identifiants de test**
 | Rôle | Nom d'utilisateur | Mot de passe | Dashboard |

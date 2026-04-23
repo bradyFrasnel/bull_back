@@ -156,18 +156,18 @@ FRONTEND_URL=https://...       # CORS configuration
 
 ---
 
-## 🎯 Points d'Accès Post-Déploiement
+## 🎯 Points d'Accès Post-Déploiement ✅ **DÉPLOYÉ**
 
-### **URLs Disponibles**
+### **URLs Production**
 ```
-API:          https://bull-back-api.onrender.com
-Swagger:      https://bull-back-api.onrender.com/api/docs
-Health Check: https://bull-back-api.onrender.com/health
+🌐 API:          https://bull-back-z97c.onrender.com
+📚 Swagger:      https://bull-back-z97c.onrender.com/api/docs
+💓 Health Check: https://bull-back-z97c.onrender.com/health
 ```
 
 ### **Test d'authentification**
 ```bash
-curl -X POST https://bull-back-api.onrender.com/auth/etudiant/login \
+curl -X POST https://bull-back-z97c.onrender.com/auth/etudiant/login \
   -H "Content-Type: application/json" \
   -d '{"nom":"mmartin2024","password":"password123"}'
 ```
@@ -226,17 +226,17 @@ FRONTEND_URL=https://votredomaine-frontend.com
 
 ### **1. Test de base**
 ```bash
-curl https://bull-back-api.onrender.com/health
+curl https://bull-back-z97c.onrender.com/health
 ```
 
 ### **2. Test Swagger**
 ```bash
-curl https://bull-back-api.onrender.com/api/docs
+curl https://bull-back-z97c.onrender.com/api/docs
 ```
 
 ### **3. Test authentification**
 ```bash
-curl -X POST https://bull-back-api.onrender.com/auth/etudiant/login \
+curl -X POST https://bull-back-z97c.onrender.com/auth/etudiant/login \
   -H "Content-Type: application/json" \
   -d '{"nom":"mmartin2024","password":"password123"}'
 ```
@@ -244,7 +244,7 @@ curl -X POST https://bull-back-api.onrender.com/auth/etudiant/login \
 ### **4. Test profil utilisateur**
 ```bash
 curl -H "Authorization: Bearer VOTRE_TOKEN" \
-  https://bull-back-api.onrender.com/profil
+  https://bull-back-z97c.onrender.com/profil
 ```
 
 ---
