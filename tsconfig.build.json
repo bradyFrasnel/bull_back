@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "src/etudiants/",
+    "src/students/",
+    "src/users/",
+    "src/enseignats/",
+    "src/evaluations/"
+  ]
+}

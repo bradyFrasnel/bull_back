@@ -1,0 +1,329 @@
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+CAHIER DES CHARGES
+Application de Gestion des Bulletins de Notes
+LP ASUR — INPTIC
+Version 1.0
+Date Avril 2026
+Établissement Institut National de la Poste, des TIC (INPTIC)
+Formation Licence Professionnelle ASUR
+Statut Document soumis à validation
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+1. CONTEXTE ET OBJECTIFS
+▌ 1.1 Contexte
+L'INPTIC assure la formation d'étudiants en Licence Professionnelle Administration et Sécurité des Réseaux (LP ASUR).
+L'évaluation des étudiants, organisée sur deux semestres (S5 et S6), repose actuellement sur un traitement manuel via
+des fichiers Excel. Ce mode opératoire présente des risques d'erreur, un manque de traçabilité et une productivité
+réduite lors des sessions de jury.
+▌ 1.2 Objectif Général
+Développer une application informatique de gestion des bulletins de notes permettant d'automatiser l'intégralité du
+processus d'évaluation : de la saisie des notes jusqu'à la génération des bulletins individuels et aux décisions de jury.
+▌ 1.3 Objectifs Spécifiques
+▸ Saisir et contrôler les notes (contrôle continu, examen final, rattrapage)
+▸ Calculer automatiquement les moyennes pondérées par coefficients
+▸ Gérer les Unités d'Enseignement (UE), les crédits et les règles de compensation
+▸ Valider les semestres et statuer sur l'obtention du diplôme annuel
+▸ Générer les bulletins individuels (S5, S6, annuel) en format imprimable
+▸ Assurer le suivi des absences et les décisions de jury
+2. PÉRIMÈTRE FONCTIONNEL
+L'application couvre les domaines suivants :
+▸ Gestion des données étudiants (identité, parcours, origine)
+▸ Gestion du référentiel pédagogique (matières, coefficients, crédits, UE, semestres)
+▸ Saisie et importation des évaluations (CC, examen, rattrapage)
+▸ Calcul automatique des moyennes et des crédits acquis
+▸ Application des règles de compensation entre UE
+▸ Validation des semestres et de l'année académique
+▸ Édition des bulletins et récapitulatifs de promotion
+▸ Gestion des rôles et des accès utilisateurs
+3. RÉFÉRENTIEL PÉDAGOGIQUE
+▌ 3.1 Structure de la Formation
+La formation LP ASUR se déroule sur deux semestres (S5 et S6), chacun organisé en Unités d'Enseignement (UE)
+regroupant plusieurs matières. Chaque matière est affectée d'un coefficient et d'un nombre de crédits ECTS.
+▌ 3.2 Semestre 5
+UE5-1 : Enseignement Général
+Matière Coefficient Crédits
+Anglais technique 1 2
+Management d'équipe 1 1
+Communication 2 1
+Droit de l'informatique 2 2
+Gestion de projets 1 1
+Veille technologique 1 1
+Consolidation bases de la programmation 2 2
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+Conception BDD et SQL 2 2
+UE5-2 : Connaissances de Base et Outils pour les Réseaux d'Entreprise
+Matière Coefficient Crédits
+Remise à niveau IOS 2 2
+Connaissance des réseaux LAN 2 2
+Les langages du script 2 2
+Virtualisation 3 3
+Application client-serveur 2 2
+Téléphonie IP avancée 2 2
+Services à valeur ajoutée 2 2
+CCNA2 1 2
+▌ 3.3 Semestre 6
+UE6-1 : Sciences de Base
+Matière Coefficient Crédits
+Environnement Windows 3 3
+Environnement Linux 3 3
+Interopérabilité 3 3
+Cryptage et Authentification 2 2
+Prévention et Sécurité 3 3
+Optimisation de l'accès Internet 3 3
+Contrôle d'accès distant 2 2
+CCNA3 1 1
+UE6-2 : Télécommunications et Réseaux
+Matière Coefficient Crédits
+Méthodologie de rédaction du rapport de stage 2 2
+Soutenance 8 8
+4. RÈGLES DE GESTION
+▌ 4.1 Calcul de la Moyenne d'une Matière
+Formule : Moyenne matière = (Note CC × 40 %) + (Note Examen × 60 %)
+Cas particuliers :
+▸ Si une seule note est disponible (CC ou examen uniquement), elle est retenue comme moyenne sans
+pondération.
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+▸ Si une note de rattrapage existe, elle remplace intégralement la moyenne initiale de la matière pour tous les
+calculs ultérieurs.
+▌ 4.2 Calcul de la Moyenne d'une UE
+La moyenne d'une UE correspond à la moyenne pondérée des matières qui la composent, en appliquant les
+coefficients de chaque matière.
+▌ 4.3 Calcul de la Moyenne de Semestre
+La moyenne de semestre correspond à la moyenne pondérée des UE du semestre, calculée à partir de leurs
+coefficients respectifs.
+▌ 4.4 Calcul de la Moyenne Annuelle
+Formule : Moyenne annuelle = (Moyenne S5 + Moyenne S6) / 2
+▌ 4.5 Validation d'une UE et Crédits Acquis
+Une UE est considérée comme acquise dans l'un des deux cas suivants :
+▸ La moyenne de l'UE est ≥ 10/20 (acquisition directe)
+▸ La moyenne de l'UE est < 10/20 mais la moyenne générale du semestre est ≥ 10/20 (acquisition par
+compensation)
+Lorsqu'une UE est acquise, l'ensemble de ses crédits sont validés.
+▌ 4.6 Validation d'un Semestre
+Un semestre est validé lorsque le total des crédits acquis (acquisition directe + compensation) atteint le volume total
+de crédits du semestre, soit 30 crédits pour S5 et 30 crédits pour S6.
+Décision Condition
+Semestre validé Tous les crédits acquis (≥ 30 crédits)
+Semestre non validé Crédits insuffisants
+Admissible S6 Cas particulier — étudiant en attente de soutenance
+▌ 4.7 Validation Annuelle et Décision du Jury
+L'étudiant est diplômé lorsqu'il a validé les deux semestres, soit un minimum de 60 crédits.
+Décision Condition
+Diplômé(e) Les deux semestres validés — 60 crédits acquis
+Reprise de soutenance Tous les crédits acquis sauf l'UE6-2 (soutenance)
+Redouble la Licence 3 Crédits insuffisants, conditions non remplies
+⚠ La règle de diplomation avec reprise de soutenance devra être paramétrable dans l'application.
+▌ 4.8 Mentions Annuelles
+Mention Tranche de Moyenne Annuelle
+Passable 10 ≤ moyenne < 12
+Assez Bien 12 ≤ moyenne < 14
+Bien 14 ≤ moyenne < 16
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+Très Bien moyenne ≥ 16
+▌ 4.9 Absences
+Le nombre d'heures d'absence par matière est enregistré pour chaque étudiant. Une pénalité sur la moyenne de
+matière peut être appliquée (valeur par défaut : 0,01 point par heure d'absence), paramétrable par l'administrateur.
+5. FONCTIONNALITÉS DÉTAILLÉES
+▌ 5.1 Gestion des Référentiels
+▸ CRUD des étudiants : nom, prénom, date et lieu de naissance, type de baccalauréat, établissement d'origine
+▸ CRUD des matières : libellé, coefficient, crédits, UE d'appartenance, semestre
+▸ CRUD des UE : code, libellé, semestre, liste des matières associées
+▸ Paramétrage des pondérations CC/Examen (40 %/60 % par défaut, modifiable)
+▌ 5.2 Saisie des Notes
+▸ Saisie individuelle par étudiant et par matière des notes de CC, d'examen final et de rattrapage (chaque champ
+est facultatif)
+▸ Importation en lot depuis un fichier Excel (format compatible avec le fichier de référence fourni)
+▸ Contrôle de cohérence : notes comprises entre 0 et 20, signalement des anomalies
+▌ 5.3 Calcul Automatique
+Après toute modification de note, l'application recalcule automatiquement et en temps réel :
+▸ Les moyennes de matière (avec ou sans rattrapage)
+▸ Les moyennes d'UE pondérées
+▸ Les moyennes de semestre
+▸ Les crédits acquis par UE et par semestre
+▸ L'application des règles de compensation
+▸ Les validations de semestre et la décision annuelle
+▌ 5.4 Gestion des Absences
+▸ Saisie du volume horaire d'absence par matière et par étudiant
+▸ Calcul et application automatique des pénalités selon le barème paramétré
+▸ Affichage du récapitulatif des absences dans les bulletins
+▌ 5.5 Édition des Bulletins
+▸ Bulletin individuel Semestre 5 (conforme au modèle « BULLETIN S5 » du fichier Excel)
+▸ Bulletin individuel Semestre 6 (conforme au modèle « BULLETIN S6 »)
+▸ Bulletin annuel (conforme au modèle « BullAnnuel »)
+▸ Chaque bulletin intègre : notes détaillées, moyennes, crédits acquis, décision, mention et statistiques de
+promotion (moyenne classe, min, max, écart-type)
+▸ Export en format PDF et HTML
+▌ 5.6 Suivi des Décisions de Jury
+▸ Affichage de la décision individuelle de jury pour chaque étudiant
+▸ Génération d'un tableau récapitulatif de la promotion avec toutes les décisions
+▸ Export Excel du relevé de notes par matière ou par semestre
+▌ 5.7 Gestion des Utilisateurs et des Droits d'Accès
+Rôle Droits et Accès
+Administrateur Paramétrage complet, gestion des utilisateurs, import/export, journaux d'audit
+Enseignant Saisie des notes pour ses propres matières uniquement
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+Secrétariat
+pédagogique Saisie des notes, gestion des absences, édition des bulletins
+Étudiant Consultation (lecture seule) de ses propres notes et bulletins
+6. LIVRABLES UML — MODÉLISATION DE L'APPLICATION
+Dans le cadre de ce projet, les étudiants sont tenus de produire l'ensemble des diagrammes UML nécessaires à la
+modélisation complète de l'application. Ces diagrammes constituent des livrables obligatoires, au même titre que le
+code source. Ils seront évalués sur leur exactitude, leur complétude et leur conformité aux standards UML 2.x.
+▌ 6.1 Diagrammes de Comportement (Vue Dynamique)
+a) Diagramme des Cas d'Utilisation (Use Case Diagram)
+Représente l'ensemble des interactions entre les acteurs et le système. Un diagramme de cas d'utilisation global est
+requis, ainsi que des diagrammes détaillés pour les fonctionnalités complexes.
+▸ Acteurs à modéliser : Administrateur, Enseignant, Secrétariat pédagogique, Étudiant
+▸ Cas d'utilisation principaux : Gérer les étudiants, Saisir les notes, Calculer les moyennes, Gérer les absences,
+Générer les bulletins, Gérer les décisions de jury, Gérer les utilisateurs
+▸ Relations à représenter : include, extend, généralisation
+b) Diagrammes de Séquence (Sequence Diagrams)
+Modélisent les échanges entre objets pour les scénarios clés de l'application. Les diagrammes de séquence suivants
+sont obligatoires :
+▸ Authentification d'un utilisateur
+▸ Saisie d'une note et recalcul automatique des moyennes en cascade
+▸ Calcul de la moyenne d'une UE avec compensation
+▸ Génération et export d'un bulletin individuel (PDF)
+▸ Import des notes depuis un fichier Excel
+c) Diagrammes d'Activité (Activity Diagrams)
+Décrivent les flux de traitement et les processus métier. Les diagrammes d'activité suivants sont requis :
+▸ Processus complet de calcul des moyennes (de la matière à la décision annuelle)
+▸ Processus de validation d'une UE (avec et sans compensation)
+▸ Processus de décision du jury (règles de diplomation)
+▸ Processus de saisie et de contrôle d'une note
+d) Diagramme d'États-Transitions (State Machine Diagram)
+Modélise les états successifs d'un objet clé du système. Les diagrammes suivants sont demandés :
+▸ États d'un étudiant : Inscrit → En cours de semestre → Résultats calculés → Décision jury rendue → Diplômé /
+Redoublant
+▸ États d'une UE : Non évaluée → En cours d'évaluation → Acquise / Compensée / Non acquise
+▌ 6.2 Diagrammes de Structure (Vue Statique)
+a) Diagramme de Classes (Class Diagram)
+Modélise la structure statique de l'application et les relations entre les entités. Ce diagramme est le livrable central de
+la modélisation. Il doit représenter :
+▸ Toutes les entités du modèle de données : Etudiant, Semestre, UE, Matiere, Evaluation, Absence,
+MoyenneMatiere, MoyenneUE, ResultatSemestre, ResultatAnnuel
+▸ Les attributs typés et la visibilité de chaque classe (+, -, #)
+▸ Les méthodes métier clés (ex. calculerMoyenne(), validerUE(), appliquerCompensation())
+▸ Les associations, multiplicités, compositions et héritages entre classes
+b) Diagramme de Composants (Component Diagram)
+Représente l'architecture logicielle en identifiant les modules applicatifs et leurs dépendances. Les composants
+attendus sont :
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+▸ Module Interface Utilisateur (UI)
+▸ Module Authentification et Gestion des droits (RBAC)
+▸ Module Gestion des Référentiels (étudiants, matières, UE)
+▸ Module Calcul des Moyennes et Règles Métier
+▸ Module Génération des Bulletins (PDF/HTML)
+▸ Module Import/Export (Excel)
+▸ Module Base de Données (ORM / couche d'accès aux données)
+c) Diagramme de Déploiement (Deployment Diagram)
+Représente l'architecture physique d'exécution de l'application. Il doit inclure :
+▸ Le serveur d'application (web ou desktop)
+▸ Le serveur de base de données (MySQL / PostgreSQL / SQL Server)
+▸ Les postes clients (navigateurs web ou applications desktop)
+▸ Les protocoles de communication entre les nœuds (HTTP/HTTPS, JDBC/ODBC)
+▌ 6.3 Récapitulatif des Livrables UML
+# Diagramme Type / Vue Caractère
+1 Diagramme des Cas d'Utilisation (global) Comportement Obligatoire
+2 Diagrammes de Cas d'Utilisation (détaillés
+par UC complexe) Comportement Obligatoire
+3 Diagramme de Séquence —
+Authentification Comportement Obligatoire
+4 Diagramme de Séquence — Saisie note +
+recalcul Comportement Obligatoire
+5 Diagramme de Séquence — Génération
+bulletin Comportement Obligatoire
+6 Diagramme de Séquence — Import Excel Comportement Obligatoire
+7 Diagramme d'Activité — Calcul des
+moyennes Comportement Obligatoire
+8 Diagramme d'Activité — Validation UE /
+Compensation Comportement Obligatoire
+9 Diagramme d'Activité — Décision du jury Comportement Obligatoire
+10 Diagramme d'États-Transitions — Étudiant Comportement Obligatoire
+11 Diagramme d'États-Transitions — UE Comportement Obligatoire
+12 Diagramme de Classes Structure Obligatoire
+13 Diagramme de Composants Structure Obligatoire
+14 Diagramme de Déploiement Structure Obligatoire
+Outil recommandé : les diagrammes peuvent être réalisés avec Enterprise Architect, StarUML, draw.io, PlantUML ou
+tout outil compatible UML 2.x. Chaque diagramme sera rendu en format image haute résolution (PNG/SVG) et intégré
+dans le document d'analyse fonctionnelle.
+7. MODÈLE DE DONNÉES
+Entité Attributs Principaux
+Etudiant id, nom, prénom, date_naissance, lieu_naissance, bac, provenance
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+Semestre id, libellé, année_universitaire
+UE id, code, libellé, semestre_id
+Matiere id, libellé, coefficient, crédits, ue_id
+Evaluation id, matiere_id, etudiant_id, type (CC/Examen/Rattrapage), note, date_saisie
+Absence id, etudiant_id, matiere_id, heures
+MoyenneMatiere id, etudiant_id, matiere_id, moyenne, rattrapage_utilisé
+MoyenneUE id, etudiant_id, ue_id, moyenne, crédits_acquis, compensé
+ResultatSemestre id, etudiant_id, semestre_id, moyenne_semestre, crédits_total, validé
+ResultatAnnuel id, etudiant_id, année, moyenne_annuelle, décision_jury, mention
+8. CONTRAINTES TECHNIQUES
+▌ 8.1 Architecture
+L'application sera développée de préférence en architecture web (accessible via navigateur), avec une base de
+données relationnelle (MySQL, PostgreSQL ou SQL Server). Une version desktop reste acceptable selon les choix
+techniques de l'équipe.
+▌ 8.2 Sécurité
+▸ Authentification par identifiant et mot de passe
+▸ Gestion des droits par rôles (RBAC — Role-Based Access Control)
+▸ Journalisation de toutes les modifications portant sur les notes et absences (horodatage, utilisateur
+responsable)
+▌ 8.3 Interfaces
+▸ Interface utilisateur claire, ergonomique et responsive (si application web)
+▸ Génération PDF des bulletins (bibliothèques recommandées : iText, wkhtmltopdf ou équivalent)
+▸ Export Excel des relevés de notes
+▌ 8.4 Performance
+▸ Temps de réponse inférieur à 2 secondes pour le calcul des moyennes d'une promotion de 50 étudiants
+▸ Calculs disponibles en mode batch (traitement simultané de l'ensemble des étudiants)
+9. LIVRABLES ATTENDUS
+# Livrable Description
+1 Document d'analyse fonctionnelle Validation formelle des règles métier + tous les
+diagrammes UML (cf. section 6)
+2 Maquettes des interfaces Wireframes des écrans principaux (saisie, bulletins, tableau
+de bord)
+3 Application fonctionnelle Logiciel livré et déployé selon la technologie choisie
+4 Jeu d'essais Données issues du fichier Excel de référence (24 étudiants)
+pour recette
+5 Manuels utilisateurs Guides distincts pour l'administrateur, l'enseignant et le
+secrétariat
+6 Code source documenté Code commenté et documentation technique
+d'architecture
+Cahier des Charges — Gestion des Bulletins de Notes LP ASUR — INPTIC — v1.0
+Document réservé à un usage pédagogique interne
+10. PLANNING INDICATIF
+Phase Étape Contenu Durée
+1 Analyse et spécifications Règles métier + production des diagrammes
+UML 2 jours
+2 Conception Base de données, maquettes UI, validation
+des diagrammes 2 jours
+3 Développement cœur Fonctionnalités principales (notes, calculs,
+règles) 5 jours
+4 Intégration & bulletins Génération PDF, import/export Excel 1 jours
+5 Tests & recette Validation sur données réelles (24 étudiants) 1 jours
+DURÉE TOTALE DU PROJET 11 jours
+11. CRITÈRES D'ACCEPTATION
+▸ Les calculs produits par l'application sont identiques à ceux du fichier Excel de référence pour les 24 étudiants
+de l'échantillon de test.
+▸ Les bulletins générés respectent fidèlement les modèles des feuilles « BULLETIN S5 », « BULLETIN S6 » et «
+BullAnnuel ».
+▸ La modification d'une note déclenche automatiquement le recalcul en cascade de toutes les moyennes, crédits
+et décisions.
+▸ L'importation d'un fichier Excel au format standard permet d'initialiser les notes d'une promotion.
+▸ L'ensemble des 14 diagrammes UML listés en section 6 est fourni, conforme aux standards UML 2.x et validé
+par l'encadrant.
+12. APPROBATION
+Fonction Nom Signature Date
+Responsable pédagogique – LP
+ASUR
+Chef du département Réseaux et
+Télécommunications
+Document réservé à un usage pédagogique interne — INPTIC — LP ASUR — v1.0 — Avril 2026

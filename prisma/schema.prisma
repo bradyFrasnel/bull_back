@@ -1,0 +1,290 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum pour les rôles avec auto-complétion TypeScript
+enum Role {
+  ADMINISTRATEUR
+  SECRETARIAT
+  ENSEIGNANT
+  ETUDIANT
+}
+
+// Table mère avec héritage
+model Utilisateur {
+  id       String   @id @default(cuid())
+  nom      String   @unique // utilisé comme identifiant de connexion
+  password String   @unique // identifiant de connexion
+  email    String   @unique
+  role     Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations polymorphiques 1:1
+  admin       Admin?
+  secretariat Secretariat?
+  enseignant  Enseignant?
+  etudiant    Etudiant?
+  
+  // TOUTES les relations métier sont ici maintenant
+  evaluations        Evaluation[]
+  absences           Absence[]
+  moyenneMatieres    MoyenneMatiere[]
+  moyenneUEs         MoyenneUE[]
+  resultatSemestres  ResultatSemestre[]
+  resultatAnnuel     ResultatAnnuel?
+  matieresEnseignees MatiereEnseignant[] // Pour les profs
+
+  @@map("utilisateurs")
+}
+
+// Tables filles avec héritage (pas de @default sur les clés étrangères)
+model Admin {
+  utilisateurId String      @id
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+model Secretariat {
+  utilisateurId String      @id
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@map("secretariats")
+}
+
+model Etudiant {
+  utilisateurId  String      @id
+  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  prenom         String      // prénom déménagé ici
+  matricule       String      @unique
+  date_naissance  DateTime
+  lieu_naissance  String
+  bac_type        String
+  annee_bac       Int
+  mention_bac     String
+  telephone       String?
+  adresse         String?
+
+  // NOTE : Plus de relations ici, tout est géré via Utilisateur
+  @@map("etudiants")
+}
+
+model Enseignant {
+  utilisateurId String      @id
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  prenom        String      // prénom déménagé ici
+  matricule     String      @unique
+  specialite    String?
+
+  // NOTE : Plus de relations ici, tout est géré via Utilisateur
+  @@map("enseignants")
+}
+
+// Référentiel académique
+model Semestre {
+  id            String @id @default(cuid())
+  code          String @unique // S5, S6
+  libelle       String
+  anneeUniversitaire String
+
+  // Relations
+  ues           UniteEnseignement[]
+  resultatSemestres ResultatSemestre[]
+
+  @@map("semestres")
+}
+
+model UniteEnseignement {
+  id        String @id @default(cuid())
+  code      String @unique // UE5-1, UE6-1, etc.
+  libelle   String
+  semestreId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  semestre  Semestre @relation(fields: [semestreId], references: [id])
+  matieres  Matiere[]
+  moyenneUEs MoyenneUE[]
+
+  @@map("unites_enseignement")
+}
+
+model Matiere {
+  id          String @id @default(cuid())
+  libelle     String
+  coefficient Float
+  credits     Int
+  uniteEnseignementId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id])
+  evaluations     Evaluation[]
+  absences         Absence[]
+  moyenneMatieres  MoyenneMatiere[]
+  enseignants      MatiereEnseignant[]
+
+  @@map("matieres")
+}
+
+// Évaluations
+model Evaluation {
+  id            String       @id @default(cuid())
+  utilisateurId String
+  matiereId     String
+  type          TypeEvaluation
+  note          Float?
+  dateSaisie    DateTime     @default(now())
+  saisiePar     String // ID de l'utilisateur qui a saisi
+
+  // Relations
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+
+  @@unique([utilisateurId, matiereId, type])
+  @@map("evaluations")
+}
+
+enum TypeEvaluation {
+  CC
+  EXAMEN
+  RATTRAPAGE
+}
+
+// Absences
+model Absence {
+  id            String @id @default(cuid())
+  utilisateurId String
+  matiereId     String
+  heures        Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+
+  @@unique([utilisateurId, matiereId])
+  @@map("absences")
+}
+
+// Calculs et résultats
+model MoyenneMatiere {
+  id              String @id @default(cuid())
+  utilisateurId   String
+  matiereId        String
+  moyenne          Float
+  rattrapageUtilise Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id])
+  matiere         Matiere     @relation(fields: [matiereId], references: [id])
+
+  @@unique([utilisateurId, matiereId])
+  @@map("moyenne_matieres")
+}
+
+model MoyenneUE {
+  id                String @id @default(cuid())
+  utilisateurId     String
+  uniteEnseignementId String
+  moyenne           Float
+  creditsAcquis     Int
+  compense          Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  utilisateur       Utilisateur @relation(fields: [utilisateurId], references: [id])
+  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id])
+
+  @@unique([utilisateurId, uniteEnseignementId])
+  @@map("moyenne_ues")
+}
+
+model ResultatSemestre {
+  id             String  @id @default(cuid())
+  utilisateurId  String
+  semestreId     String
+  moyenneSemestre Float
+  creditsTotal   Int
+  valide         Boolean
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
+  semestre       Semestre    @relation(fields: [semestreId], references: [id])
+
+  @@unique([utilisateurId, semestreId])
+  @@map("resultat_semestres")
+}
+
+model ResultatAnnuel {
+  id              String         @id @default(cuid())
+  utilisateurId   String         @unique
+  annee           String
+  moyenneAnnuelle Float?
+  decisionJury   DecisionJury?
+  mention         Mention?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  @@map("resultat_annuels")
+}
+
+enum DecisionJury {
+  DIPLOME
+  REPRISE_SOUTENANCE
+  REDOUBLANCE
+  ADMISSIBLE_S6
+}
+
+enum Mention {
+  PASSABLE
+  ASSEZ_BIEN
+  BIEN
+  TRES_BIEN
+}
+
+// Table de liaison entre enseignants et matières
+model MatiereEnseignant {
+  id            String @id @default(cuid())
+  utilisateurId String
+  matiereId      String
+  createdAt      DateTime @default(now())
+
+  // Relations
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+
+  @@unique([utilisateurId, matiereId])
+  @@map("matiere_enseignant")
+}
+
+// Configuration système
+model Configuration {
+  id        String @id @default(cuid())
+  cle       String @unique
+  valeur    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configurations")
+}
