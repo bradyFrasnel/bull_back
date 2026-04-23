@@ -69,9 +69,9 @@ async function bootstrap() {
   
   const port = process.env.PORT || 3002;
   await app.listen(port, '0.0.0.0');
-  console.log(`Application is running on: http://0.0.0.0:${port}`);
-  console.log(`Swagger documentation available at: http://0.0.0.0:${port}/api/docs`);
-  console.log(`Local access: http://localhost:${port}`);
-  console.log(`Network access: http://0.0.0.0:${port}`);
+  console.log(`L'application est lancée sur: http://0.0.0.0:${port}`);
+  console.log(`La documentation Swagger accessible sur: http://0.0.0.0:${port}/api/docs`);
+  console.log(`Accès local: http://localhost:${port}`);
+  console.log(`Accès réseau: http://0.0.0.0:${port}`);
 }
 bootstrap();
