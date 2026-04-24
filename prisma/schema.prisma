@@ -21,8 +21,8 @@ enum Role {
 // Table mère avec héritage
 model Utilisateur {
   id       String   @id @default(cuid())
-  nom      String   @unique // utilisé comme identifiant de connexion
-  password String   @unique // identifiant de connexion
+  nom      String   @unique
+  password String   @unique
   email    String   @unique
   role     Role
   createdAt DateTime @default(now())
@@ -41,7 +41,7 @@ model Utilisateur {
   moyenneUEs         MoyenneUE[]
   resultatSemestres  ResultatSemestre[]
   resultatAnnuel     ResultatAnnuel?
-  matieresEnseignees MatiereEnseignant[] // Pour les profs
+  matieresEnseignees MatiereEnseignant[]
 
   @@map("utilisateurs")
 }
@@ -64,7 +64,7 @@ model Secretariat {
 model Etudiant {
   utilisateurId  String      @id
   utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  prenom         String      // prénom déménagé ici
+  prenom         String
   matricule       String      @unique
   date_naissance  DateTime
   lieu_naissance  String
@@ -81,7 +81,7 @@ model Etudiant {
 model Enseignant {
   utilisateurId String      @id
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  prenom        String      // prénom déménagé ici
+  prenom        String
   matricule     String      @unique
   specialite    String?
 

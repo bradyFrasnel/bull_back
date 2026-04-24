@@ -6,18 +6,25 @@
 **Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
 **Health** : `https://bull-back-z97c.onrender.com/health`
 
-**Développement** : `http://localhost:3002`
-**Réseau** : `http://0.0.0.0:3002`
+**Développement** : `http://localhost:5000`
+**Réseau** : `http://0.0.0.0:5000`
 
 ---
 
-## 🔐 Authentification (7 endpoints)
+## 🔐 Authentification (10 endpoints)
 
 ### **Connexion**
 ```http
-POST /auth/etudiant/login       - Connexion étudiant
-POST /auth/enseignant/login    - Connexion enseignant
-POST /auth/admin/login           - Connexion admin/secretariat
+POST /auth/etudiant/login       - Connexion étudiant (nom)
+POST /auth/enseignant/login    - Connexion enseignant (nom)
+POST /auth/admin/login           - Connexion admin (nom)
+POST /auth/secretariat/login    - Connexion secrétariat (nom)
+```
+
+### **Inscription (Auto-création)**
+```http
+POST /auth/secretariat/register - Créer compte secrétariat
+POST /auth/admin/register       - Créer compte admin
 ```
 
 ### **Gestion mots de passe**

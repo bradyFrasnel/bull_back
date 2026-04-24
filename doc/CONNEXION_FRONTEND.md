@@ -6,8 +6,8 @@
 **Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
 **Health** : `https://bull-back-z97c.onrender.com/health`
 
-**Développement** : `http://localhost:3002`
-**Réseau** : `http://0.0.0.0:3002`
+**Développement** : `http://localhost:5000`
+**Réseau** : `http://0.0.0.0:5000`
 
 ---
 

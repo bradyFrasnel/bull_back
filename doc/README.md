@@ -26,7 +26,14 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 - Composants React complets
 - Tests et déploiement
 
-### **🚀 Démarrage Rapide**
+### **� Gestion Académique**
+📄 **[SERVICE_SECRETARIAT.md](./SERVICE_SECRETARIAT.md)**
+- Service complet pour le secrétariat
+- CRUD étudiants/enseignants/matières
+- Calculs et évaluations
+- Permissions et workflow
+
+### **� Démarrage Rapide**
 � **[QUICK_START_FRONTEND.md](./QUICK_START_FRONTEND.md)**
 - Setup en 5 minutes
 - Structure de projet optimisée
@@ -34,7 +41,7 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 
 ### **📡 Référence API Complète**
 📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 64 endpoints complets documentés
+- 70+ endpoints complets documentés
 - Exemples de requêtes/réponses
 - Droits par rôle
 - Codes d'erreur
