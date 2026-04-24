@@ -144,4 +144,68 @@ export class AuthService {
       },
     });
   }
+
+  async loginSecretariat(loginDto: any) {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { nom: loginDto.nom },
+      include: { secretariat: true }
+    });
+
+    if (!user || user.role !== 'SECRETARIAT') {
+      throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role, type: 'secretariat' };
+    return {
+      access_token: this.jwtService.sign(payload),
+      secretariat: {
+        id: user.id,
+        nom: user.nom,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    };
+  }
+
+  async registerSecretariat(registerDto: any) {
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    
+    const utilisateur = await this.prisma.utilisateur.create({
+      data: {
+        nom: registerDto.nom,
+        password: hashedPassword,
+        email: registerDto.email,
+        role: 'SECRETARIAT',
+      },
+    });
+
+    return this.prisma.secretariat.create({
+      data: {
+        utilisateurId: utilisateur.id,
+      },
+    });
+  }
+
+  async getSecretariatProfile(utilisateurId: string) {
+    return this.prisma.secretariat.findUnique({
+      where: { utilisateurId },
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            nom: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          }
+        }
+      }
+    });
+  }
 }

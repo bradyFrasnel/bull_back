@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthEtudiantController } from './controllers/auth-etudiant.controller';
 import { AuthEnseignantController } from './controllers/auth-enseignant.controller';
 import { AuthAdminController } from './controllers/auth-admin.controller';
+import { AuthSecretariatController } from './controllers/auth-secretariat.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { EnseignantsModule } from '../enseignats/enseignats.module';
@@ -29,7 +30,8 @@ import { EtudiantsModule } from '../etudiants/etudiants.module';
   controllers: [
     AuthEtudiantController,
     AuthEnseignantController,
-    AuthAdminController
+    AuthAdminController,
+    AuthSecretariatController
   ],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],
