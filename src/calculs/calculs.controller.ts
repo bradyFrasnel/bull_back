@@ -14,9 +14,9 @@ export class CalculsController {
   constructor(private readonly calculsService: CalculsService) {}
 
   @Post('etudiant/:etudiantId/matiere/:matiereId')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Calculer la moyenne d\'une matière pour un étudiant' })
-  @ApiResponse({ status: 200, description: 'Moyenne calculée avec succès' })
+  @ApiResponse({ status: 200, description: 'Moyenne calculée' })
   async calculerMoyenneMatiere(
     @Param('etudiantId') etudiantId: string,
     @Param('matiereId') matiereId: string,
@@ -25,9 +25,9 @@ export class CalculsController {
   }
 
   @Post('etudiant/:etudiantId/ue/:ueId')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Calculer la moyenne d\'une UE pour un étudiant' })
-  @ApiResponse({ status: 200, description: 'Moyenne UE calculée avec succès' })
+  @ApiResponse({ status: 200, description: 'Moyenne UE calculée' })
   async calculerMoyenneUE(
     @Param('etudiantId') etudiantId: string,
     @Param('ueId') ueId: string,
@@ -38,7 +38,7 @@ export class CalculsController {
   @Post('etudiant/:etudiantId/semestre/:semestreId')
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
   @ApiOperation({ summary: 'Calculer le résultat d\'un semestre pour un étudiant' })
-  @ApiResponse({ status: 200, description: 'Résultat semestre calculé avec succès' })
+  @ApiResponse({ status: 200, description: 'Résultat semestre calculé' })
   async calculerResultatSemestre(
     @Param('etudiantId') etudiantId: string,
     @Param('semestreId') semestreId: string,
@@ -52,11 +52,11 @@ export class CalculsController {
   @ApiResponse({ status: 200, description: 'Toutes les moyennes recalculées' })
   async recalculerToutPourEtudiant(@Param('etudiantId') etudiantId: string) {
     await this.calculsService.recalculerToutPourEtudiant(etudiantId);
-    return { message: 'Toutes les moyennes ont été recalculées avec succès' };
+    return { message: 'Toutes les moyennes ont été recalculées' };
   }
 
   @Get('etudiant/:etudiantId/matiere/:matiereId/details')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Voir les détails de calcul d\'une matière' })
   @ApiResponse({ status: 200, description: 'Détails du calcul' })
   async voirDetailsCalculMatiere(

@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '../auth.service';
 import { LoginAdminDto } from '../dto/login-admin.dto';
+import { RegisterAdminDto } from '../dto/register-admin.dto';
 import { CreateEnseignantDto } from '../../enseignats/dto/create-enseignats.dto';
 import { CreateEtudiantDto } from '../../etudiants/dto/create-etudiant.dto';
 
@@ -42,5 +43,14 @@ export class AuthAdminController {
   @ApiResponse({ status: 201, description: 'Étudiant créé avec succès' })
   async createEtudiant(@Body() createEtudiantDto: CreateEtudiantDto) {
     return this.authService.createEtudiant(createEtudiantDto);
+  }
+
+  @Post('register')
+  @ApiOperation({ summary: 'Enregistrement administrateur' })
+  @ApiBody({ type: RegisterAdminDto, description: 'Données pour créer un administrateur' })
+  @ApiResponse({ status: 201, description: 'Administrateur créé avec succès' })
+  @ApiResponse({ status: 400, description: 'Données invalides' })
+  async register(@Body() registerAdminDto: RegisterAdminDto) {
+    return this.authService.registerAdmin(registerAdminDto);
   }
 }

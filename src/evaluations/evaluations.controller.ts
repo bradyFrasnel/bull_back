@@ -15,7 +15,7 @@ export class EvaluationsController {
   constructor(private readonly evaluationsService: EvaluationsService) {}
 
   @Post()
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Créer une évaluation' })
   @ApiBody({ type: CreateEvaluationDto, description: 'Données pour créer une évaluation' })
   @ApiResponse({ status: 201, description: 'Évaluation créée avec succès' })
@@ -24,7 +24,7 @@ export class EvaluationsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Lister toutes les évaluations' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations' })
   findAll() {
@@ -46,7 +46,7 @@ export class EvaluationsController {
   }
 
   @Get('matiere/:matiereId')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Lister les évaluations d\'une matière' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations de la matière' })
   findByMatiere(@Param('matiereId') matiereId: string) {
@@ -54,7 +54,7 @@ export class EvaluationsController {
   }
 
   @Get('type/:type')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Lister les évaluations par type' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations du type' })
   findByType(@Param('type') type: TypeEvaluation) {
@@ -72,7 +72,7 @@ export class EvaluationsController {
   }
 
   @Put(':id')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Mettre à jour une évaluation' })
   @ApiResponse({ status: 200, description: 'Évaluation mise à jour' })
   update(@Param('id') id: string, @Body() updateEvaluationDto: Partial<CreateEvaluationDto>) {
@@ -80,7 +80,7 @@ export class EvaluationsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @Roles(UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Supprimer une évaluation' })
   @ApiResponse({ status: 200, description: 'Évaluation supprimée' })
   remove(@Param('id') id: string) {

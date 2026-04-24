@@ -16,7 +16,7 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 - Gestion des tokens et erreurs
 
 📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 70+ endpoints complets documentés
+- 75+ endpoints complets documentés
 - Exemples de requêtes/réponses
 - Droits par rôle
 - Codes d'erreur
@@ -57,7 +57,7 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 
 ### **📡 Référence API Complète**
 📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 70+ endpoints complets documentés
+- 75+ endpoints complets documentés
 - Exemples de requêtes/réponses
 - Droits par rôle
 - Codes d'erreur
@@ -79,7 +79,7 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 
 ### **3. Référence API**
 📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 64 endpoints complets
+- 75+ endpoints complets
 - Exemples de requêtes
 - Codes d'erreur
 - Droits par rôle

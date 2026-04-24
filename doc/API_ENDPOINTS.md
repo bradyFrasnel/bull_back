@@ -11,7 +11,7 @@
 
 ---
 
-## 🔐 Authentification (10 endpoints)
+## 🔐 Authentification (11 endpoints)
 
 ### **Connexion**
 ```http
@@ -21,9 +21,9 @@ POST /auth/admin/login           - Connexion admin (nom)
 POST /auth/secretariat/login    - Connexion secrétariat (nom)
 ```
 
-### **Inscription (Auto-création)**
+### **Création de comptes (register)**
 ```http
-POST /auth/secretariat/register - Créer compte secrétariat
+POST /auth/secretariat/register  - Créer compte secrétariat
 POST /auth/admin/register       - Créer compte admin
 ```
 
@@ -33,11 +33,19 @@ PUT /auth/etudiant/change-password    - Changer mot de passe étudiant
 PUT /auth/enseignant/change-password  - Changer mot de passe enseignant
 ```
 
-### **Création utilisateurs (admin)**
+### **Création par administrateur (create-)**
 ```http
 POST /auth/admin/create-enseignant  - Créer enseignant (admin)
 POST /auth/admin/create-etudiant    - Créer étudiant (admin)
 ```
+
+### **Règles de création**
+- **Étudiants** : Admin + Secretariat (CRUD)
+- **Secretariat** : Auto-inscription uniquement  
+- **Enseignants** : Admin + Secretariat (CRUD)
+- **Admins** : Auto-inscription uniquement
+
+*Note: Les endpoints register étudiants/enseignants sont désactivés. Utiliser les endpoints CRUD avec permissions appropriées.*
 
 ---
 
@@ -79,6 +87,27 @@ GET    /enseignants/matieres/:matiereId/enseignants       - Enseignants d'une ma
 ---
 
 ## 📚 Référentiel Académique (30 endpoints)
+
+### **Évaluations (8 endpoints)**
+```http
+POST   /evaluations                    - Créer évaluation (Secretariat/Enseignant)
+GET    /evaluations                    - Lister évaluations (Secretariat/Enseignant)
+GET    /evaluations/:id               - Détails évaluation
+GET    /evaluations/etudiant/:etudiantId - Par étudiant
+GET    /evaluations/matiere/:matiereId  - Par matière
+GET    /evaluations/type/:type          - Par type
+PUT    /evaluations/:id               - MAJ évaluation (Secretariat/Enseignant)
+DELETE /evaluations/:id               - Supprimer évaluation (Secretariat/Enseignant)
+```
+
+### **Calculs (6 endpoints)**
+```http
+POST /calculs/etudiant/:etudiantId/matiere/:matiereId      - Calculer matière (Secretariat/Enseignant)
+POST /calculs/etudiant/:etudiantId/ue/:ueId              - Calculer UE (Secretariat/Enseignant)
+POST /calculs/etudiant/:etudiantId/semestre/:semestreId    - Calculer semestre (Secretariat/Enseignant)
+POST /calculs/etudiant/:etudiantId/recalculer-tout          - Recalculer tout (Secretariat)
+GET  /calculs/etudiant/:etudiantId/matiere/:matiereId/details - Détails calcul (Secretariat/Enseignant)
+```
 
 ### **Matières (6 endpoints)**
 ```http

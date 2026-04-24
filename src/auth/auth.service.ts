@@ -145,6 +145,47 @@ export class AuthService {
     });
   }
 
+  async registerEnseignant(registerDto: any) {
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    
+    const utilisateur = await this.prisma.utilisateur.create({
+      data: {
+        nom: registerDto.nom,
+        password: hashedPassword,
+        email: registerDto.email,
+        role: 'ENSEIGNANT',
+      },
+    });
+
+    return this.prisma.enseignant.create({
+      data: {
+        utilisateurId: utilisateur.id,
+        prenom: registerDto.prenom,
+        matricule: registerDto.matricule,
+        specialite: registerDto.specialite,
+      },
+    });
+  }
+
+  async registerAdmin(registerDto: any) {
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    
+    const utilisateur = await this.prisma.utilisateur.create({
+      data: {
+        nom: registerDto.nom,
+        password: hashedPassword,
+        email: registerDto.email,
+        role: 'ADMINISTRATEUR',
+      },
+    });
+
+    return this.prisma.admin.create({
+      data: {
+        utilisateurId: utilisateur.id,
+      },
+    });
+  }
+
   async loginSecretariat(loginDto: any) {
     // D'abord trouver l'utilisateur par son nom
     const user = await this.prisma.utilisateur.findUnique({
