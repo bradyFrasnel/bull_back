@@ -146,9 +146,9 @@ export class AuthService {
   }
 
   async loginSecretariat(loginDto: any) {
+    // D'abord trouver l'utilisateur par son nom
     const user = await this.prisma.utilisateur.findUnique({
       where: { nom: loginDto.nom },
-      include: { secretariat: true }
     });
 
     if (!user || user.role !== 'SECRETARIAT') {
@@ -160,11 +160,22 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
+    // Ensuite trouver le profil secrétariat si nécessaire
+    let secretariatProfile = null;
+    try {
+      secretariatProfile = await this.prisma.secretariat.findUnique({
+        where: { utilisateurId: user.id },
+      });
+    } catch (error) {
+      // Le profil secrétariat n'existe pas encore, c'est OK
+    }
+
     const payload = { sub: user.id, email: user.email, role: user.role, type: 'secretariat' };
     return {
       access_token: this.jwtService.sign(payload),
       secretariat: {
-        id: user.id,
+        id: secretariatProfile?.id || user.id,
+        utilisateurId: secretariatProfile?.utilisateurId || user.id,
         nom: user.nom,
         email: user.email,
         role: user.role,
