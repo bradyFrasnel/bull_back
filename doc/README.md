@@ -15,6 +15,22 @@ Ce dossier contient toute la documentation nécessaire pour développer et inté
 - Exemples de code détaillés
 - Gestion des tokens et erreurs
 
+📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
+- 70+ endpoints complets documentés
+- Exemples de requêtes/réponses
+- Droits par rôle
+- Codes d'erreur
+
+📄 **[CONNEXION_FRONTEND.md](./CONNEXION_FRONTEND.md)**
+- Guide complet d'intégration JWT
+- Exemples de code React
+- Service d'authentification
+- Composants protégés
+- Gestion des erreurs
+
+📄 **[NUXT_INTEGRATION_COMPLETE.md](./doc/NUXT_INTEGRATION_COMPLETE.md)**
+- Guide complet Nuxt.js avec types, composables, pages
+
 ### **👤 Gestion Profils Utilisateurs**
 📄 **[SERVICE_PROFIL.md](./SERVICE_PROFIL.md)**
 - Service backend complet pour les profils
