@@ -1,10 +1,11 @@
 import { IsString, IsDate, IsOptional, IsEmail, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEtudiantDto {
   @ApiProperty({
     description: 'Nom de famille',
-    example: 'Martin',
+    example: 'mouk',
     type: String
   })
   @IsString()
@@ -12,7 +13,7 @@ export class CreateEtudiantDto {
 
   @ApiProperty({
     description: 'Prénom',
-    example: 'Marie',
+    example: 'brad',
     type: String
   })
   @IsString()
@@ -36,7 +37,7 @@ export class CreateEtudiantDto {
 
   @ApiProperty({
     description: 'Email',
-    example: 'marie.martin@asur.fr',
+    example: 'brad.martin@asur.fr',
     type: String
   })
   @IsEmail()
@@ -62,7 +63,7 @@ export class CreateEtudiantDto {
 
   @ApiProperty({
     description: 'Lieu de naissance',
-    example: 'Paris',
+    example: 'mouila',
     type: String
   })
   @IsString()
@@ -111,8 +112,5 @@ export class CreateEtudiantDto {
   @IsString()
   @IsOptional()
   adresse?: string;
-}
-function Type(arg0: () => DateConstructor): (target: CreateEtudiantDto, propertyKey: "date_naissance") => void {
-  throw new Error('Function not implemented.');
 }
 
