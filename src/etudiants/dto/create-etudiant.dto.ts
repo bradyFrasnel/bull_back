@@ -57,6 +57,7 @@ export class CreateEtudiantDto {
     type: Date
   })
   @IsDate()
+  @Type(() => Date)
   date_naissance: Date;
 
   @ApiProperty({
@@ -111,3 +112,7 @@ export class CreateEtudiantDto {
   @IsOptional()
   adresse?: string;
 }
+function Type(arg0: () => DateConstructor): (target: CreateEtudiantDto, propertyKey: "date_naissance") => void {
+  throw new Error('Function not implemented.');
+}
+

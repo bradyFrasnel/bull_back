@@ -49,6 +49,44 @@ POST /auth/admin/create-etudiant    - Créer étudiant (admin)
 
 ---
 
+## 🧪 **RÉCAPITULATIF DES TESTS VALIDÉS**
+
+### **✅ Tests de création validés sur production**
+
+#### **1. Semestre**
+- **Endpoint** : `POST /semestres`
+- **DTO** : `{ libelle, anneeUniversitaire, code }`
+- **Statut** : ✅ Validé
+
+#### **2. Unité d'Enseignement (UE)**
+- **Endpoint** : `POST /unites-enseignement`
+- **DTO** : `{ code, libelle, semestreId }`
+- **Statut** : ✅ Validé
+
+#### **3. Matière**
+- **Endpoint** : `POST /matieres`
+- **DTO** : `{ libelle, coefficient, credits, uniteEnseignementId }`
+- **Statut** : ✅ Validé
+
+#### **4. Enseignant**
+- **Endpoint** : `POST /enseignants`
+- **DTO** : `{ nom, prenom, matricule, specialite, email, password }`
+- **Statut** : ✅ Validé
+
+### **📊 Hiérarchie validée**
+```
+Semestre → Unité d'Enseignement → Matière
+   ↓              ↓                    ↓
+   ID            ID                   ID
+```
+
+### **🔐 Permissions confirmées**
+- **Admin + Secretariat** : Création complète validée
+- **Tokens JWT** : Authentification fonctionnelle
+- **Relations** : Inclusion automatique des données parentes
+
+---
+
 ## 👥 Gestion Étudiants (7 endpoints)
 
 ### **CRUD complet**
@@ -119,6 +157,51 @@ PUT    /matieres/:id               - MAJ matière
 DELETE /matieres/:id               - Supprimer matière
 ```
 
+#### **🧪 Test de création de matière**
+**Endpoint** : `POST https://bull-back-z97c.onrender.com/matieres`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "libelle": "Algorithmique avancée",
+  "coefficient": 3,
+  "credits": 6,
+  "uniteEnseignementId": "cmoefidda0001ff1qifa55jcw"
+}
+```
+
+**Réponse succès (201)** :
+```json
+{
+  "id": "cmoefnl8x0003ff1qn19p0s1r",
+  "libelle": "Algorithmique avancée",
+  "coefficient": 3,
+  "credits": 6,
+  "uniteEnseignementId": "cmoefidda0001ff1qifa55jcw",
+  "createdAt": "2026-04-25T14:26:47.505Z",
+  "updatedAt": "2026-04-25T14:26:47.505Z",
+  "uniteEnseignement": {
+    "id": "cmoefidda0001ff1qifa55jcw",
+    "code": "UE01",
+    "libelle": "Algorithmique et Programmation",
+    "semestreId": "cmoee0x3v0000e41qudrzryev",
+    "createdAt": "2026-04-25T14:22:44.015Z",
+    "updatedAt": "2026-04-25T14:22:44.015Z"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `400` : Champs manquants (`libelle`, `coefficient`, `credits`, `uniteEnseignementId`)
+- `404` : `uniteEnseignementId` inexistant
+- `401/403` : Problèmes d'authentification/autorisation
+
 ### **Unités Enseignement (6 endpoints)**
 ```http
 GET    /unites-enseignement                    - Lister toutes les UE
@@ -129,6 +212,89 @@ PUT    /unites-enseignement/:id               - MAJ UE
 DELETE /unites-enseignement/:id               - Supprimer UE
 ```
 
+#### **🧪 Test de création d'UE**
+**Endpoint** : `POST https://bull-back-z97c.onrender.com/unites-enseignement`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "code": "UE01",
+  "libelle": "Algorithmique et Programmation",
+  "semestreId": "cmoee0x3v0000e41qudrzryev"
+}
+```
+
+**Réponse succès (201)** :
+```json
+{
+  "id": "cmoefidda0001ff1qifa55jcw",
+  "code": "UE01",
+  "libelle": "Algorithmique et Programmation",
+  "semestreId": "cmoee0x3v0000e41qudrzryev",
+  "createdAt": "2026-04-25T14:22:44.015Z",
+  "updatedAt": "2026-04-25T14:22:44.015Z",
+  "semestre": {
+    "id": "cmoee0x3v0000e41qudrzryev",
+    "code": "S1-2024",
+    "libelle": "Semestre 1",
+    "anneeUniversitaire": "2024-2025"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `400` : Champs manquants (`code`, `libelle`, `semestreId`)
+- `404` : `semestreId` inexistant
+- `401/403` : Problèmes d'authentification/autorisation
+
+#### **🧪 Test de création d'enseignant**
+**Endpoint** : `POST https://bull-back-z97c.onrender.com/enseignants`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "nom": "Martin",
+  "prenom": "Jean",
+  "matricule": "ENS2024001",
+  "specialite": "Développement Web",
+  "email": "jean.martin@asur.fr",
+  "password": "password123"
+}
+```
+
+**Réponse succès (201)** :
+```json
+{
+  "utilisateurId": "cmoeftcc70004ff1q6dlj4x5a",
+  "prenom": "Jean",
+  "matricule": "ENS2024001",
+  "specialite": "Développement Web",
+  "utilisateur": {
+    "id": "cmoeftcc70004ff1q6dlj4x5a",
+    "email": "jean.martin@asur.fr",
+    "nom": "Martin",
+    "role": "ENSEIGNANT"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `400` : Champs manquants ou invalides
+- `409` : Email ou matricule déjà existant
+- `401/403` : Problèmes d'authentification/autorisation
+
 ### **Semestres (6 endpoints)**
 ```http
 GET    /semestres                    - Lister tous les semestres
@@ -138,6 +304,39 @@ POST   /semestres                    - Créer semestre
 PUT    /semestres/:id               - MAJ semestre
 DELETE /semestres/:id               - Supprimer semestre
 ```
+
+#### **🧪 Test de création de semestre**
+**Endpoint** : `POST https://bull-back-z97c.onrender.com/semestres`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "libelle": "Semestre 1",
+  "anneeUniversitaire": "2024-2025",
+  "code": "S1-2024"
+}
+```
+
+**Réponse succès (201)** :
+```json
+{
+  "id": "cmoee0x3v0000e41qudrzryev",
+  "code": "S1-2024",
+  "libelle": "Semestre 1",
+  "anneeUniversitaire": "2024-2025"
+}
+```
+
+**Erreurs possibles** :
+- `400` : Champs manquants (`libelle`, `anneeUniversitaire`, `code`)
+- `401` : Token manquant ou invalide
+- `403` : Permissions insuffisantes (rôle non autorisé)
 
 ---
 
