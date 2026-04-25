@@ -54,7 +54,7 @@ export class CreateEtudiantDto {
 
   @ApiProperty({
     description: 'Date de naissance',
-    example: '2000-01-15',
+    example: '2000-05-15',
     type: Date
   })
   @IsDate()

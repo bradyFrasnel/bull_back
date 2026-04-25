@@ -73,6 +73,11 @@ POST /auth/admin/create-etudiant    - Créer étudiant (admin)
 - **DTO** : `{ nom, prenom, matricule, specialite, email, password }`
 - **Statut** : ✅ Validé
 
+#### **5. Étudiant**
+- **Endpoint** : `POST /etudiants`
+- **DTO** : `{ nom, prenom, matricule, identifiant, email, password, date_naissance, lieu_naissance, bac_type, annee_bac, mention_bac, telephone?, adresse? }`
+- **Statut** : ✅ Validé
+
 ### **📊 Hiérarchie validée**
 ```
 Semestre → Unité d'Enseignement → Matière
@@ -293,6 +298,61 @@ Content-Type: application/json
 **Erreurs possibles** :
 - `400` : Champs manquants ou invalides
 - `409` : Email ou matricule déjà existant
+- `401/403` : Problèmes d'authentification/autorisation
+
+#### **🧪 Test de création d'étudiant**
+**Endpoint** : `POST https://bull-back-z97c.onrender.com/etudiants`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Corps de la requête** :
+```json
+{
+  "nom": "Arron",
+  "prenom": "mba",
+  "matricule": "2024ASUR001",
+  "identifiant": "mba2024",
+  "email": "marie.durand@asur.ga",
+  "password": "password123",
+  "date_naissance": "2000-05-15",
+  "lieu_naissance": "azertyu",
+  "bac_type": "C",
+  "annee_bac": 2012,
+  "mention_bac": "Bien",
+  "telephone": "0612345678",
+  "adresse": "123 Rue de la République"
+}
+```
+
+**Réponse succès (201)** :
+```json
+{
+  "utilisateurId": "cmoei3vnr0005et295nn8ys7v",
+  "prenom": "mba",
+  "matricule": "2024ASUR001",
+  "date_naissance": "2000-05-15T00:00:00.000Z",
+  "lieu_naissance": "azertyu",
+  "bac_type": "C",
+  "annee_bac": 2012,
+  "mention_bac": "Bien",
+  "telephone": "0612345678",
+  "adresse": "123 Rue de la République",
+  "utilisateur": {
+    "id": "cmoei3vnr0005et295nn8ys7v",
+    "email": "marie.durand@asur.ga",
+    "nom": "Arron",
+    "role": "ETUDIANT"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `400` : Champs manquants ou format invalide (date_naissance)
+- `409` : Email ou identifiant déjà existant
 - `401/403` : Problèmes d'authentification/autorisation
 
 ### **Semestres (6 endpoints)**
