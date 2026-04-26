@@ -78,6 +78,17 @@ POST /auth/admin/create-etudiant    - Créer étudiant (admin)
 - **DTO** : `{ nom, prenom, matricule, identifiant, email, password, date_naissance, lieu_naissance, bac_type, annee_bac, mention_bac, telephone?, adresse? }`
 - **Statut** : ✅ Validé
 
+#### **6. Profil Utilisateur**
+- **Endpoint** : `GET /profil`
+- **Auth** : Token JWT requis (utilisateur connecté)
+- **Statut** : ✅ Validé
+
+#### **7. Listes Complètes**
+- **GET /semestres** : Lister tous les semestres avec UE incluses ✅
+- **GET /unites-enseignement** : Lister toutes les UE avec semestre inclus ✅
+- **GET /etudiants** : Lister tous les étudiants avec utilisateur inclus ✅
+- **GET /enseignants** : Lister tous les enseignants avec utilisateur inclus ✅
+
 ### **📊 Hiérarchie validée**
 ```
 Semestre → Unité d'Enseignement → Matière
@@ -354,6 +365,86 @@ Content-Type: application/json
 - `400` : Champs manquants ou format invalide (date_naissance)
 - `409` : Email ou identifiant déjà existant
 - `401/403` : Problèmes d'authentification/autorisation
+
+#### **🧪 Test de récupération profil utilisateur**
+**Endpoint** : `GET https://bull-back-z97c.onrender.com/profil`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_utilisateur_connecté>
+Content-Type: application/json
+```
+
+**Réponse succès (200)** :
+```json
+{
+  "id": "cmod9w3j20000gf1ro0ccql88",
+  "nom": "admin0",
+  "email": "secretariat3@render.fr",
+  "role": "SECRETARIAT",
+  "createdAt": "2026-04-24T18:57:40.551Z",
+  "utilisateurId": "cmod9w3j20000gf1ro0ccql88",
+  "utilisateur": {
+    "email": "secretariat3@render.fr",
+    "createdAt": "2026-04-24T18:57:40.551Z"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `401` : Token manquant ou invalide
+- `403` : Permissions insuffisantes
+- `500` : Erreur serveur (si DB inaccessible)
+
+**Note** : L'endpoint utilise l'utilisateur connecté via le token JWT, pas un ID spécifique.
+
+#### **🧪 Tests de listing complets**
+**Endpoints** : `GET /semestres`, `GET /unites-enseignement`, `GET /etudiants`, `GET /enseignants`
+
+**Headers requis** :
+```http
+Authorization: Bearer <jwt_token_admin_ou_secretariat>
+Content-Type: application/json
+```
+
+**Réponses succès (200)** :
+
+**Semestres avec UE incluses** :
+```json
+{
+  "id": "cmoee0x3v0000e41qudrzryev",
+  "code": "S1-2024",
+  "libelle": "Semestre 1",
+  "anneeUniversitaire": "2024-2025",
+  "ues": [
+    {
+      "id": "cmoefidda0001ff1qifa55jcw",
+      "code": "UE01",
+      "libelle": "Algorithmique et Programmation",
+      "matieres": [...]
+    }
+  ]
+}
+```
+
+**Étudiants avec utilisateur inclus** :
+```json
+{
+  "utilisateurId": "cmoei3vnr0005et295nn8ys7v",
+  "prenom": "mba",
+  "matricule": "2024ASUR001",
+  "utilisateur": {
+    "id": "cmoei3vnr0005et295nn8ys7v",
+    "email": "marie.durand@asur.ga",
+    "nom": "Arron",
+    "role": "ETUDIANT"
+  }
+}
+```
+
+**Erreurs possibles** :
+- `401/403` : Permissions insuffisantes
+- `500` : Erreur serveur (si DB inaccessible)
 
 ### **Semestres (6 endpoints)**
 ```http
