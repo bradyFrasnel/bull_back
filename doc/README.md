@@ -1,88 +1,79 @@
-# 📚 Documentation Bull ASUR - Frontend & Backend
+# � Bull ASUR - Documentation Complète
 
-## 🎯 Objectif
+## 📋 Vue d'ensemble
 
-Ce dossier contient toute la documentation nécessaire pour développer et intégrer le système Bull ASUR complet.
+Système de gestion académique complet avec backend NestJS et frontend React. Documentation optimisée pour une intégration rapide et efficace.
 
 ---
 
-## 📋 Fichiers Disponibles
+## � Structure des Fichiers
 
-### **🔐 Authentification & Sécurité**
-📄 **[CONNEXION_FRONTEND.md](./CONNEXION_FRONTEND.md)**
-- Guide complet d'intégration JWT
-- Service d'authentification React
-- Exemples de code détaillés
-- Gestion des tokens et erreurs
-
-📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 75+ endpoints complets documentés
-- Exemples de requêtes/réponses
-- Droits par rôle
-- Codes d'erreur
-
-📄 **[CONNEXION_FRONTEND.md](./CONNEXION_FRONTEND.md)**
-- Guide complet d'intégration JWT
-- Exemples de code React
-- Service d'authentification
-- Composants protégés
-- Gestion des erreurs
-
-📄 **[NUXT_INTEGRATION_COMPLETE.md](./doc/NUXT_INTEGRATION_COMPLETE.md)**
-- Guide complet Nuxt.js avec types, composables, pages
-
-### **👤 Gestion Profils Utilisateurs**
-📄 **[SERVICE_PROFIL.md](./SERVICE_PROFIL.md)**
-- Service backend complet pour les profils
-- Endpoints API détaillés
-- Validation et sécurité
-
-📄 **[INTEGRATION_PROFIL.md](./INTEGRATION_PROFIL.md)**
-- Guide d'intégration frontend
-- Composants React complets
-- Tests et déploiement
-
-### **� Gestion Académique**
-📄 **[SERVICE_SECRETARIAT.md](./SERVICE_SECRETARIAT.md)**
-- Service complet pour le secrétariat
-- CRUD étudiants/enseignants/matières
-- Calculs et évaluations
-- Permissions et workflow
-
-### **� Démarrage Rapide**
-� **[QUICK_START_FRONTEND.md](./QUICK_START_FRONTEND.md)**
-- Setup en 5 minutes
-- Structure de projet optimisée
+### **1. � README.md** (Ce fichier)
+- Vue d'ensemble du projet
+- Instructions d'installation rapide
+- Architecture et stack technique
 - Workflow de développement
 
-### **📡 Référence API Complète**
-📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 75+ endpoints complets documentés
+### **2. 📡 API_ENDPOINTS.md**
+- 64+ endpoints API complets
 - Exemples de requêtes/réponses
-- Droits par rôle
-- Codes d'erreur
+- Authentification JWT
+- Permissions par rôle
 
-### **1. Connexion Frontend**
-📄 **[CONNEXION_FRONTEND.md](./CONNEXION_FRONTEND.md)**
-- Guide complet d'intégration JWT
-- Exemples de code React
+### **3. 🔐 FRONTEND_INTEGRATION.md**
+- Guide complet d'intégration React
 - Service d'authentification
 - Composants protégés
-- Gestion des erreurs
+- Exemples de code TypeScript
 
-### **2. Démarrage Rapide**
-📄 **[QUICK_START_FRONTEND.md](./QUICK_START_FRONTEND.md)**
-- Setup en 5 minutes
-- Structure de projet recommandée
-- Hooks personnalisés
-- Workflow de développement
+---
 
-### **3. Référence API**
-📄 **[API_ENDPOINTS.md](./API_ENDPOINTS.md)**
-- 75+ endpoints complets
-- Exemples de requêtes
-- Codes d'erreur
-- Droits par rôle
+## 🛠️ Stack Technique
+
+### **Backend**
+- **Framework**: NestJS + TypeScript
+- **Base**: PostgreSQL + Prisma ORM
+- **Authentification**: JWT Bearer Token
+- **API**: RESTful + Swagger Documentation
+
+### **Frontend**
+- **Framework**: React 18 + TypeScript
+- **Routing**: React Router v6
+- **HTTP Client**: Axios
+- **Styling**: TailwindCSS
+- **Forms**: React Hook Form
+
+---
+
+## 🚀 Installation Rapide
+
+### **Backend**
+```bash
+# Cloner et démarrer
+git clone <repo>
+cd Bull_ASUR
+npm install
+npm run start:dev
+
+# Disponible sur http://localhost:5000
+# Documentation: http://localhost:5000/api/docs
+```
+
+### **Frontend**
+```bash
+# Créer le projet
+npx create-react-app bull-asur-frontend --template typescript
+cd bull-asur-frontend
+
+# Installer les dépendances
+npm install axios react-router-dom react-hook-form @hookform/resolvers yup
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# Démarrer
+npm start
+# Disponible sur http://localhost:3000
+```
 
 ---
 
