@@ -1,354 +1,305 @@
-# � Bull ASUR - Documentation Complète
+# 📚 Documentation Bull ASUR - API Backend
 
-## 📋 Vue d'ensemble
+## 🎯 Vue d'ensemble
 
-Système de gestion académique complet avec backend NestJS et frontend React. Documentation optimisée pour une intégration rapide et efficace.
+API REST NestJS pour la gestion des bulletins de notes de la Licence Professionnelle ASUR (Administration et Sécurité des Réseaux).
+
+**URL Production**: `https://bull-back-z97c.onrender.com`  
+**Documentation Swagger**: `https://bull-back-z97c.onrender.com/api/docs`
 
 ---
 
-## � Structure des Fichiers
+## 📖 Documentation Disponible
 
-### **1. � README.md** (Ce fichier)
-- Vue d'ensemble du projet
-- Instructions d'installation rapide
-- Architecture et stack technique
-- Workflow de développement
+### 1. [Guide d'Intégration React](./GUIDE_INTEGRATION_REACT.md)
+**Pour les développeurs frontend**
 
-### **2. 📡 API_ENDPOINTS.md**
-- 64+ endpoints API complets
-- Exemples de requêtes/réponses
-- Authentification JWT
+Guide concis avec les éléments essentiels pour connecter un frontend React :
+- Configuration Axios et gestion JWT
+- Endpoints principaux avec exemples
+- Hooks React (useAuth)
+- Composants de base
+- Gestion des erreurs
 - Permissions par rôle
 
-### **3. 🔐 FRONTEND_INTEGRATION.md**
-- Guide complet d'intégration React
-- Service d'authentification
-- Composants protégés
-- Exemples de code TypeScript
+### 2. [API Endpoints Complet](./API_ENDPOINTS.md)
+**Référence complète de l'API**
+
+Documentation exhaustive de tous les endpoints :
+- 64 endpoints détaillés
+- Corps de requêtes et réponses
+- Codes d'erreur
+- Tests validés en production
+- Exemples curl et Postman
+
+### 3. [Frontend Integration Guide](./FRONTEND_INTEGRATION.md)
+**Guide détaillé d'intégration**
+
+Guide complet avec structure de projet complète :
+- Architecture du projet React
+- Services et types TypeScript
+- Composants avancés
+- Routes protégées
+- Configuration TailwindCSS
+- Déploiement
 
 ---
 
-## 🛠️ Stack Technique
+## 🚀 Démarrage Rapide
 
-### **Backend**
-- **Framework**: NestJS + TypeScript
-- **Base**: PostgreSQL + Prisma ORM
-- **Authentification**: JWT Bearer Token
-- **API**: RESTful + Swagger Documentation
+### Pour les développeurs frontend React
 
-### **Frontend**
-- **Framework**: React 18 + TypeScript
-- **Routing**: React Router v6
-- **HTTP Client**: Axios
-- **Styling**: TailwindCSS
-- **Forms**: React Hook Form
+1. **Lire le [Guide d'Intégration React](./GUIDE_INTEGRATION_REACT.md)** (recommandé)
+   - Contient l'essentiel pour démarrer rapidement
+   - Exemples de code prêts à l'emploi
+   - Configuration minimale
+
+2. **Tester l'API avec Swagger**
+   - Accéder à `https://bull-back-z97c.onrender.com/api/docs`
+   - Tester les endpoints avec les identifiants de test
+   - Comprendre les structures de données
+
+3. **Consulter [API Endpoints](./API_ENDPOINTS.md)** pour les détails
+   - Référence complète des endpoints
+   - Exemples de requêtes/réponses
+   - Gestion des erreurs
 
 ---
 
-## 🚀 Installation Rapide
+## 🔐 Authentification
 
-### **Backend**
-```bash
-# Cloner et démarrer
-git clone <repo>
-cd Bull_ASUR
-npm install
-npm run start:dev
+### Endpoints de connexion
 
-# Disponible sur http://localhost:5000
-# Documentation: http://localhost:5000/api/docs
+```
+POST /auth/etudiant/login
+POST /auth/enseignant/login
+POST /auth/admin/login
+POST /auth/secretariat/login
 ```
 
-### **Frontend**
-```bash
-# Créer le projet
-npx create-react-app bull-asur-frontend --template typescript
-cd bull-asur-frontend
+### Identifiants de test
 
-# Installer les dépendances
-npm install axios react-router-dom react-hook-form @hookform/resolvers yup
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
+| Rôle | Nom | Mot de passe |
+|------|-----|--------------|
+| Admin | root | root |
+| Secrétariat | admin | admin |
+| Étudiant | mmartin2024 | password123 |
+| Enseignant | jdupontweb | password123 |
 
-# Démarrer
-npm start
-# Disponible sur http://localhost:3000
+### Utilisation du token JWT
+
+```typescript
+// 1. Connexion
+const response = await fetch('/auth/etudiant/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ nom: 'mmartin2024', password: 'password123' })
+});
+const { access_token } = await response.json();
+
+// 2. Utiliser le token
+const data = await fetch('/profil', {
+  headers: { 'Authorization': `Bearer ${access_token}` }
+});
 ```
 
 ---
 
-## 🔐 Flux d'Authentification
+## 📊 Structure de l'API
 
-```mermaid
-graph TD
-    A[Utilisateur] --> B{Choisir Rôle}
-    B --> C[Étudiant]
-    B --> D[Enseignant] 
-    B --> E[Admin]
-    
-    C --> F[POST /auth/etudiant/login]
-    D --> G[POST /auth/enseignant/login]
-    E --> H[POST /auth/admin/login]
-    
-    F --> I[Token JWT + Infos]
-    G --> I
-    H --> I
-    
-    I --> J[Dashboard Étudiant]
-    I --> K[Dashboard Enseignant]
-    I --> L[Dashboard Admin]
+### Modules principaux
+
+1. **Authentification** (11 endpoints)
+   - Connexion par rôle
+   - Changement de mot de passe
+   - Création de comptes
+
+2. **Gestion Utilisateurs** (17 endpoints)
+   - Étudiants (CRUD)
+   - Enseignants (CRUD + matières)
+   - Profil utilisateur
+
+3. **Référentiel Académique** (18 endpoints)
+   - Semestres
+   - Unités d'Enseignement (UE)
+   - Matières
+
+4. **Évaluations** (9 endpoints)
+   - Saisie des notes (CC, Examen, Rattrapage)
+   - Consultation par étudiant/matière
+
+5. **Calculs** (5 endpoints)
+   - Moyennes matières
+   - Moyennes UE
+   - Résultats semestre
+
+**Total : 64 endpoints**
+
+---
+
+## 🔒 Permissions
+
+| Rôle | Authentification | Gestion Étudiants | Gestion Enseignants | Référentiel | Évaluations | Calculs |
+|------|-----------------|-------------------|---------------------|-------------|-------------|---------|
+| **ADMIN** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous |
+| **SECRETARIAT** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous |
+| **ENSEIGNANT** | ✅ | Lecture | Lecture (soi) | Lecture | CRUD | Matière/UE |
+| **ETUDIANT** | ✅ | Lecture (soi) | - | Lecture | Lecture (soi) | - |
+
+---
+
+## 🛠️ Technologies
+
+- **Framework**: NestJS 11
+- **Base de données**: PostgreSQL
+- **ORM**: Prisma 6
+- **Authentification**: JWT (Passport)
+- **Documentation**: Swagger/OpenAPI
+- **Validation**: class-validator
+- **Déploiement**: Render
+
+---
+
+## 📁 Structure du Projet Backend
+
+```
+src/
+├── auth/                    # Authentification JWT
+│   ├── controllers/         # Contrôleurs par rôle
+│   ├── dto/                 # DTOs de login/register
+│   ├── guards/              # Guards JWT
+│   └── strategies/          # Stratégies Passport
+├── common/                  # Éléments partagés
+│   ├── decorators/          # Décorateurs personnalisés
+│   ├── enums/               # Énumérations (rôles, types)
+│   └── guards/              # Guards de rôles
+├── etudiants/               # Gestion étudiants
+├── enseignants/             # Gestion enseignants
+├── semestres/               # Gestion semestres
+├── unites-enseignement/     # Gestion UE
+├── matieres/                # Gestion matières
+├── evaluations/             # Gestion évaluations
+├── calculs/                 # Calculs académiques
+├── profil/                  # Profil utilisateur
+└── prisma/                  # Service Prisma
 ```
 
 ---
 
-## 🛠️ Stack Technique
+## 🔄 Workflow d'Intégration
 
-### **Backend**
-- **Framework** : NestJS
-- **Base** : PostgreSQL + Prisma ORM
-- **Authentification** : JWT Bearer Token
-- **API** : RESTful + Swagger Documentation
+### 1. Configuration initiale
 
-### **Frontend (Recommandé)**
-- **Framework** : React 18+
-- **Routing** : React Router v6
-- **HTTP Client** : Axios
-- **State Management** : React Hooks + Context
+```typescript
+// services/api.ts
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'https://bull-back-z97c.onrender.com'
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default api;
+```
+
+### 2. Authentification
+
+```typescript
+// services/auth.ts
+import api from './api';
+
+export const login = async (nom: string, password: string, role: string) => {
+  const { data } = await api.post(`/auth/${role}/login`, { nom, password });
+  localStorage.setItem('token', data.access_token);
+  return data;
+};
+```
+
+### 3. Appels API
+
+```typescript
+// Récupérer les semestres
+const { data } = await api.get('/semestres');
+
+// Créer un étudiant
+const { data } = await api.post('/etudiants', {
+  nom: 'Dupont',
+  prenom: 'Marie',
+  matricule: '2024ASUR001',
+  email: 'marie.dupont@asur.fr',
+  password: 'password123',
+  date_naissance: '2000-05-15',
+  lieu_naissance: 'Paris',
+  bac_type: 'S',
+  annee_bac: 2018,
+  mention_bac: 'Bien'
+});
+```
 
 ---
 
-## 🔐 Sécurité
+## 🚨 Gestion des Erreurs
 
-### **JWT Structure**
+### Codes HTTP
+
+- **200/201**: Succès
+- **400**: Requête invalide
+- **401**: Non authentifié
+- **403**: Accès refusé
+- **404**: Ressource non trouvée
+- **500**: Erreur serveur
+
+### Format des erreurs
+
 ```json
 {
-  "sub": "user_id",
-  "email": "user@email.com", 
-  "role": "ETUDIANT|ENSEIGNANT|ADMINISTRATEUR",
-  "iat": 1640000000,
-  "exp": 1640003600
+  "statusCode": 401,
+  "message": "Identifiants invalides",
+  "error": "Unauthorized"
 }
 ```
 
-### **Rôles et Permissions**
-| Rôle | Étudiants | Enseignants | Matières | UE | Semestres | Évaluations | Admin |
-|-------|-----------|-------------|----------|-----|-----------|------------|-------|
-| **ETUDIANT** | Lecture soi-même | ❌ | ❌ | ❌ | ❌ | Lecture | ❌ |
-| **ENSEIGNANT** | Lecture | Lecture | ❌ | ❌ | ❌ | CRUD | ❌ |
-| **SECRETARIAT** | CRUD | CRUD | CRUD | CRUD | CRUD | CRUD | ❌ |
-| **ADMIN** | CRUD | CRUD | CRUD | CRUD | CRUD | CRUD | ✅ |
+---
+
+## 📞 Support
+
+### Documentation interactive
+- **Swagger UI**: `https://bull-back-z97c.onrender.com/api/docs`
+- Tester tous les endpoints directement
+- Voir les schémas de données
+- Exemples de requêtes/réponses
+
+### Guides disponibles
+1. [Guide d'Intégration React](./GUIDE_INTEGRATION_REACT.md) - Démarrage rapide
+2. [API Endpoints](./API_ENDPOINTS.md) - Référence complète
+3. [Frontend Integration](./FRONTEND_INTEGRATION.md) - Guide détaillé
 
 ---
 
-## 📊 Fonctionnalités Clés
+## 🎯 Prochaines Étapes
 
-### **✅ Implémentées**
-- Authentification JWT multi-rôles
-- CRUD complet pour toutes les entités
-- Calculs académiques automatiques
-- Validation rattrapage (< 6)
-- Règle des 2 meilleures notes
-- Documentation Swagger complète
+### Pour les développeurs frontend
 
-### **🔄 Logique Métier**
-- **Rattrapage** : Uniquement si moyenne initiale < 6
-- **Calcul matière** : Moyenne des 2 meilleures notes (CC/Examen/Rattrapage)
-- **Calcul UE** : Moyenne pondérée des matières
-- **Calcul semestre** : Moyenne pondérée des UE
-- **Recalcul automatique** : Après chaque évaluation
+1. ✅ Lire le [Guide d'Intégration React](./GUIDE_INTEGRATION_REACT.md)
+2. ✅ Configurer Axios avec intercepteurs JWT
+3. ✅ Implémenter l'authentification
+4. ✅ Créer les composants de base
+5. ✅ Tester avec les identifiants de test
+6. ✅ Consulter [API Endpoints](./API_ENDPOINTS.md) pour les détails
 
----
+### Pour les développeurs backend
 
-## 🚀 Déploiement
-
-### **Environnement de développement**
-```bash
-# Backend (Port 5000)
-npm run start:dev
-
-# Frontend (Port 3000) 
-npm start
-
-# Documentation
-http://localhost:5000/api/docs
-```
-
-### **Configuration requise**
-```javascript
-// Frontend
-const API_CONFIG = {
-  baseURL: 'http://localhost:5000',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-};
-```
+1. ✅ Consulter le schéma Prisma (`prisma/schema.prisma`)
+2. ✅ Voir les contrôleurs dans `src/*/controllers`
+3. ✅ Comprendre les DTOs dans `src/*/dto`
+4. ✅ Tester avec Swagger
 
 ---
 
-## 📱 Exemples d'Utilisation
-
-### **1. Connexion étudiant**
-```javascript
-const loginEtudiant = async () => {
-  const response = await fetch('http://localhost:5000/auth/etudiant/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      nom: 'mmartin2024',
-      password: 'password123'
-    })
-  });
-  
-  const { access_token, etudiant } = await response.json();
-  localStorage.setItem('token', access_token);
-  localStorage.setItem('user', JSON.stringify(etudiant));
-};
-```
-
-### **2. Lister les matières**
-```javascript
-const getMatieres = async () => {
-  const token = localStorage.getItem('token');
-  const response = await fetch('http://localhost:5000/matieres', {
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  
-  return await response.json();
-};
-```
-
-### **3. Créer une évaluation**
-```javascript
-const createEvaluation = async (evaluationData) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch('http://localhost:5000/evaluations', {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(evaluationData)
-  });
-  
-  return await response.json();
-};
-```
-
----
-
-## 🎯 Points d'Accès
-
-### 🌐 URLs de l'API
-
-**Production** ✅ : `https://bull-back-z97c.onrender.com`
-**Documentation** : `https://bull-back-z97c.onrender.com/api/docs`
-**Health** : `https://bull-back-z97c.onrender.com/health`
-
-**Développement** : `http://localhost:3002`
-**Réseau** : `http://0.0.0.0:3002`
-
-### **Identifiants de test**
-| Rôle | Nom d'utilisateur | Mot de passe | Dashboard |
-|-------|----------------|-------------|----------|
-| Admin | root | root | /admin/dashboard |
-| Secretariat | admin | admin | /admin/dashboard |
-| Étudiant | mmartin2024 | password123 | /student/dashboard |
-| Enseignant | jdupontweb | password123 | /teacher/dashboard |
-
----
-
-## 📞 Support et Débogage
-
-### **Erreurs courantes**
-- **CORS** : Vérifier que le backend tourne
-- **401 Unauthorized** : Token invalide ou expiré
-- **403 Forbidden** : Rôle insuffisant
-- **Rattrapage refusé** : Moyenne ≥ 6
-
-### **Outils de développement**
-- **Postman** : Tester les endpoints
-- **React DevTools** : Déboguer le frontend
-- **Network Tab** : Vérifier les requêtes HTTP
-
----
-
-## 🔄 Workflow de Développement
-
-### **Phase 1 : Setup**
-1. Cloner le projet frontend
-2. Configurer les variables d'environnement
-3. Installer les dépendances
-4. Configurer le service API
-
-### **Phase 2 : Authentification**
-1. Implémenter le composant Login
-2. Gérer les tokens JWT
-3. Créer les routes protégées
-4. Tester tous les rôles
-
-### **Phase 3 : Fonctionnalités**
-1. Tableaux de bord par rôle
-2. CRUD des entités
-3. Calculs académiques
-4. Gestion des erreurs
-
-### **Phase 4 : Tests**
-1. Tests E2E complets
-2. Tests unitaires
-3. Tests d'intégration API
-4. Validation responsive
-
----
-
-## 🎓 Checklist de Livraison
-
-- [ ] Authentification multi-rôles fonctionnelle
-- [ ] Tableaux de bord implémentés
-- [ ] CRUD entités opérationnels
-- [ ] Calculs académiques validés
-- [ ] Gestion erreurs robuste
-- [ ] Documentation utilisateur complète
-- [ ] Tests E2E rédigés
-- [ ] Déploiement production prêt
-
----
-
-## 📈 Évolutions Futures
-
-### **Version 2.0**
-- [ ] Refresh tokens automatiques
-- [ ] Notifications temps réel
-- [ ] Export PDF bulletins
-- [ ] Mode hors ligne
-- [ ] API mobile
-
-### **Améliorations**
-- [ ] Cache des requêtes
-- [ ] Pagination des listes
-- [ ] Recherche avancée
-- [ ] Graphiques statistiques
-
----
-
-## 📞 Contact Support
-
-### **Documentation technique**
-- **API complète** : Voir [API_ENDPOINTS.md](./API_ENDPOINTS.md)
-- **Swagger interactif** : http://localhost:5000/api/docs
-- **Exemples de code** : Voir [CONNEXION_FRONTEND.md](./CONNEXION_FRONTEND.md)
-
-### **Aide développement**
-- **Backend prêt** : Port 5000
-- **Base de données** : PostgreSQL avec Prisma
-- **Architecture** : RESTful + JWT
-
----
-
-**🚀 Prêt à développer !**
-
-Cette documentation fournit tous les éléments nécessaires pour créer un frontend complet et fonctionnel avec l'API Bull ASUR.
+**Dernière mise à jour**: Avril 2026  
+**Version API**: 1.0.0
