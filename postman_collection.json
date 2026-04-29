@@ -1,0 +1,595 @@
+{
+	"info": {
+		"_postman_id": "bull-asur-api",
+		"name": "Bull ASUR API",
+		"description": "Collection complète pour tester l'API Bull ASUR",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login Étudiant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"test_student\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/auth/etudiant/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["auth", "etudiant", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Enseignant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"test_teacher\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/auth/enseignant/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["auth", "enseignant", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"root\",\n  \"password\": \"root\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/auth/admin/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["auth", "admin", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login Secrétariat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"admin\",\n  \"password\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/auth/secretariat/login",
+							"host": ["{{BASE_URL}}"],
+							"path": ["auth", "secretariat", "login"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Profile",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/profil",
+							"host": ["{{BASE_URL}}"],
+							"path": ["profil"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"prenom\": \"Updated Prenom\",\n  \"matricule\": \"2024UPDATED001\",\n  \"adresse\": \"456 Updated Street\",\n  \"telephone\": \"0698765432\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/profil",
+							"host": ["{{BASE_URL}}"],
+							"path": ["profil"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/profil/change-password",
+							"host": ["{{BASE_URL}}"],
+							"path": ["profil", "change-password"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Students CRUD",
+			"item": [
+				{
+					"name": "Create Student",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"new_student\",\n  \"email\": \"newstudent@example.com\",\n  \"password\": \"password123\",\n  \"prenom\": \"New\",\n  \"matricule\": \"2024NEW001\",\n  \"adresse\": \"789 New Street\",\n  \"telephone\": \"0611223344\",\n  \"date_naissance\": \"2001-05-15\",\n  \"lieu_naissance\": \"New City\",\n  \"bac_type\": \"C\",\n  \"annee_bac\": 2023,\n  \"mention_bac\": \"Très Bien\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/etudiants",
+							"host": ["{{BASE_URL}}"],
+							"path": ["etudiants"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Students",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/etudiants",
+							"host": ["{{BASE_URL}}"],
+							"path": ["etudiants"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/etudiants/{{STUDENT_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["etudiants", "{{STUDENT_ID}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Student",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Updated Student\",\n  \"email\": \"updatedstudent@example.com\",\n  \"prenom\": \"Updated\",\n  \"matricule\": \"2024UPD001\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/etudiants/{{STUDENT_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["etudiants", "{{STUDENT_ID}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Student",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/etudiants/{{STUDENT_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["etudiants", "{{STUDENT_ID}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Teachers CRUD",
+			"item": [
+				{
+					"name": "Create Teacher",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"new_teacher\",\n  \"email\": \"newteacher@example.com\",\n  \"password\": \"password123\",\n  \"prenom\": \"New\",\n  \"matricule\": \"ENS2024NEW001\",\n  \"specialite\": \"Physique\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/enseignats",
+							"host": ["{{BASE_URL}}"],
+							"path": ["enseignats"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Teachers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/enseignats",
+							"host": ["{{BASE_URL}}"],
+							"path": ["enseignats"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Teacher by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/enseignats/{{TEACHER_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["enseignats", "{{TEACHER_ID}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Teacher",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Updated Teacher\",\n  \"email\": \"updatedteacher@example.com\",\n  \"prenom\": \"Updated\",\n  \"specialite\": \"Chimie\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/enseignats/{{TEACHER_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["enseignats", "{{TEACHER_ID}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Teacher",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/enseignats/{{TEACHER_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["enseignats", "{{TEACHER_ID}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Academic Structure",
+			"item": [
+				{
+					"name": "Create Semester",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Semestre 3\",\n  \"code\": \"S3\",\n  \"annee_academique\": \"2024-2025\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/semestres",
+							"host": ["{{BASE_URL}}"],
+							"path": ["semestres"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create UE",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Algorithmique Avancée\",\n  \"code\": \"UE301\",\n  \"credits\": 6,\n  \"semestre_id\": \"{{SEMESTRE_ID}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/unites-enseignement",
+							"host": ["{{BASE_URL}}"],
+							"path": ["unites-enseignement"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Matière",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ADMIN_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Structures de Données\",\n  \"code\": \"MAT301\",\n  \"coefficient\": 3,\n  \"ue_id\": \"{{UE_ID}}\",\n  \"enseignant_id\": \"{{TEACHER_ID}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/matieres",
+							"host": ["{{BASE_URL}}"],
+							"path": ["matieres"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Evaluations",
+			"item": [
+				{
+					"name": "Create Evaluation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TEACHER_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom\": \"Examen Partiel\",\n  \"type\": \"EXAMEN\",\n  \"coefficient\": 0.3,\n  \"matiere_id\": \"{{MATIERE_ID}}\",\n  \"semestre_id\": \"{{SEMESTRE_ID}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/evaluations",
+							"host": ["{{BASE_URL}}"],
+							"path": ["evaluations"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Evaluations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TEACHER_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/evaluations",
+							"host": ["{{BASE_URL}}"],
+							"path": ["evaluations"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Evaluations by Teacher",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TEACHER_TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{BASE_URL}}/evaluations/teacher/{{TEACHER_ID}}",
+							"host": ["{{BASE_URL}}"],
+							"path": ["evaluations", "teacher", "{{TEACHER_ID}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "System",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/",
+							"host": ["{{BASE_URL}}"],
+							"path": [""]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "BASE_URL",
+			"value": "https://bull-back-z97c.onrender.com",
+			"type": "string"
+		}
+	]
+}
