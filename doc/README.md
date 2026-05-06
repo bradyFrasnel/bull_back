@@ -17,20 +17,19 @@ API REST NestJS pour la gestion des bulletins de notes de la Licence Professionn
 Guide concis avec les éléments essentiels pour connecter un frontend React :
 - Configuration Axios et gestion JWT
 - Endpoints principaux avec exemples
+- **Endpoints bulletins** (nouveau) — données agrégées prêtes pour génération PDF
 - Hooks React (useAuth)
-- Composants de base
-- Gestion des erreurs
 - Permissions par rôle
+- Identifiants de test
 
 ### 2. [API Endpoints Complet](./API_ENDPOINTS.md)
 **Référence complète de l'API**
 
 Documentation exhaustive de tous les endpoints :
-- 64 endpoints détaillés
+- 67 endpoints détaillés (64 + 3 bulletins)
 - Corps de requêtes et réponses
 - Codes d'erreur
 - Tests validés en production
-- Exemples curl et Postman
 
 ### 3. [Frontend Integration Guide](./FRONTEND_INTEGRATION.md)
 **Guide détaillé d'intégration**
@@ -40,8 +39,6 @@ Guide complet avec structure de projet complète :
 - Services et types TypeScript
 - Composants avancés
 - Routes protégées
-- Configuration TailwindCSS
-- Déploiement
 
 ---
 
@@ -133,14 +130,23 @@ const data = await fetch('/profil', {
    - Moyennes UE
    - Résultats semestre
 
-**Total : 64 endpoints**
+6. **Bulletins** (3 endpoints) ← Nouveau
+   - Bulletin semestre (données agrégées prêtes pour PDF)
+   - Bulletin annuel (S5 + S6 + décision jury + mention)
+   - Récapitulatif promotion (classement + statistiques)
+
+**Total : 67 endpoints**
 
 ---
 
 ## 🔒 Permissions
 
-| Rôle | Authentification | Gestion Étudiants | Gestion Enseignants | Référentiel | Évaluations | Calculs |
-|------|-----------------|-------------------|---------------------|-------------|-------------|---------|
+| Rôle | Authentification | Gestion Étudiants | Gestion Enseignants | Référentiel | Évaluations | Calculs | Bulletins |
+|------|-----------------|-------------------|---------------------|-------------|-------------|---------|-----------|
+| **ADMIN** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous | ✅ |
+| **SECRETARIAT** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous | ✅ |
+| **ENSEIGNANT** | ✅ | Lecture | Lecture (soi) | Lecture | CRUD | Matière/UE | Semestre/Annuel |
+| **ETUDIANT** | ✅ | Lecture (soi) | — | Lecture | Lecture (soi) | — | Soi uniquement |
 | **ADMIN** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous |
 | **SECRETARIAT** | ✅ | CRUD | CRUD | CRUD | CRUD | Tous |
 | **ENSEIGNANT** | ✅ | Lecture | Lecture (soi) | Lecture | CRUD | Matière/UE |

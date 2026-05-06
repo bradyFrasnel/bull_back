@@ -8,6 +8,7 @@ import { SemestresModule } from './semestres/semestres.module';
 import { EvaluationsModule } from './evaluations/evaluations.module';
 import { CalculsModule } from './calculs/calculs.module';
 import { ProfilModule } from './profil/profil.module';
+import { BulletinsModule } from './bulletins/bulletins.module';
 import { AppController } from './app.controller';
 
 // Controller Health pour Render
@@ -43,6 +44,7 @@ export class HealthController {
     EvaluationsModule,
     CalculsModule,
     ProfilModule,
+    BulletinsModule,
   ],
   controllers: [HealthController, AppController],
 })

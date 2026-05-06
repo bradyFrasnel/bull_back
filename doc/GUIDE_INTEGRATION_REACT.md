@@ -4,8 +4,8 @@
 
 API REST pour la gestion des bulletins de notes LP ASUR avec authentification JWT et gestion des rôles.
 
-**URL Production**: `https://bull-back-z97c.onrender.com`  
-**Documentation Swagger**: `https://bull-back-z97c.onrender.com/api/docs`
+**URL Production** : `https://bull-back-z97c.onrender.com`  
+**Documentation Swagger** : `https://bull-back-z97c.onrender.com/api/docs`
 
 ---
 
@@ -20,15 +20,14 @@ POST /auth/admin/login
 POST /auth/secretariat/login
 ```
 
-### Requête de connexion
+### Requête / Réponse
 
 ```typescript
-interface LoginRequest {
-  nom: string;        // Identifiant utilisateur
-  password: string;
-}
+// Requête
+{ nom: string; password: string; }
 
-interface LoginResponse {
+// Réponse
+{
   access_token: string;
   user: {
     id: string;
@@ -39,43 +38,25 @@ interface LoginResponse {
 }
 ```
 
-### Exemple d'appel
-
-```typescript
-const response = await fetch('https://bull-back-z97c.onrender.com/auth/etudiant/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ nom: 'mmartin2024', password: 'password123' })
-});
-
-const { access_token, user } = await response.json();
-localStorage.setItem('token', access_token);
-```
-
 ---
 
-## 🔑 Gestion du Token JWT
-
-### Configuration Axios
+## 🔑 Configuration Axios
 
 ```typescript
+// services/api.ts
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'https://bull-back-z97c.onrender.com',
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Intercepteur pour ajouter le token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Gestion des erreurs 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -94,163 +75,253 @@ export default api;
 
 ## 👤 Profil Utilisateur
 
-### Récupérer le profil connecté
-
 ```typescript
 GET /profil
-Authorization: Bearer <token>
-
-// Réponse
-{
-  id: string;
-  nom: string;
-  email: string;
-  role: string;
-  // Données spécifiques selon le rôle (étudiant, enseignant, etc.)
-}
+// Réponse : { id, nom, email, role, ... }
 ```
 
 ---
 
 ## 📚 Endpoints Principaux
 
-### 1. Semestres
+### Semestres
 
 ```typescript
-GET    /semestres                    // Lister tous
-GET    /semestres/:id                // Détails
-POST   /semestres                    // Créer (Admin/Secretariat)
-PUT    /semestres/:id                // Modifier (Admin/Secretariat)
-DELETE /semestres/:id                // Supprimer (Admin/Secretariat)
+GET    /semestres                        // Lister tous
+GET    /semestres/:id                    // Détails
+GET    /semestres/annee/:annee           // Par année universitaire
+POST   /semestres                        // Créer (Admin/Secretariat)
+PUT    /semestres/:id                    // Modifier (Admin/Secretariat)
+DELETE /semestres/:id                    // Supprimer (Admin/Secretariat)
 
-// Création
+// Body création
+{ code: string; libelle: string; anneeUniversitaire: string; }
+```
+
+### Unités d'Enseignement
+
+```typescript
+GET    /unites-enseignement                          // Lister toutes
+GET    /unites-enseignement/:id                      // Détails
+GET    /unites-enseignement/semestre/:semestreId     // Par semestre
+POST   /unites-enseignement                          // Créer (Admin/Secretariat)
+PUT    /unites-enseignement/:id                      // Modifier
+DELETE /unites-enseignement/:id                      // Supprimer
+
+// Body création
+{ code: string; libelle: string; semestreId: string; }
+```
+
+### Matières
+
+```typescript
+GET    /matieres                  // Lister toutes
+GET    /matieres/:id              // Détails
+GET    /matieres/ue/:ueId         // Par UE
+POST   /matieres                  // Créer (Admin/Secretariat)
+PUT    /matieres/:id              // Modifier
+DELETE /matieres/:id              // Supprimer
+
+// Body création
+{ libelle: string; coefficient: number; credits: number; uniteEnseignementId: string; }
+```
+
+### Étudiants
+
+```typescript
+GET    /etudiants                            // Lister tous
+GET    /etudiants/:id                        // Détails
+GET    /etudiants/matricule/:matricule       // Par matricule
+POST   /etudiants                            // Créer (Admin/Secretariat)
+PUT    /etudiants/:id                        // Modifier
+DELETE /etudiants/:id                        // Supprimer (Admin)
+
+// Body création
 {
-  code: string;              // Ex: "S1-2024"
-  libelle: string;           // Ex: "Semestre 1"
-  anneeUniversitaire: string; // Ex: "2024-2025"
+  nom: string; prenom: string; matricule: string;
+  email: string; password: string;
+  date_naissance: string;   // "YYYY-MM-DD"
+  lieu_naissance: string; bac_type: string;
+  annee_bac: number; mention_bac: string;
+  telephone?: string; adresse?: string;
 }
 ```
 
-### 2. Unités d'Enseignement (UE)
+### Enseignants
 
 ```typescript
-GET    /unites-enseignement                    // Lister toutes
-GET    /unites-enseignement/:id                // Détails
-GET    /unites-enseignement/semestre/:semestreId // Par semestre
-POST   /unites-enseignement                    // Créer (Admin/Secretariat)
-PUT    /unites-enseignement/:id                // Modifier (Admin/Secretariat)
-DELETE /unites-enseignement/:id                // Supprimer (Admin/Secretariat)
+GET    /enseignants                                          // Lister tous
+GET    /enseignants/:id                                      // Détails
+POST   /enseignants                                          // Créer (Admin/Secretariat)
+PUT    /enseignants/:id                                      // Modifier
+DELETE /enseignants/:id                                      // Supprimer (Admin)
+POST   /enseignants/:enseignantId/matieres/:matiereId        // Assigner matière
+DELETE /enseignants/:enseignantId/matieres/:matiereId        // Retirer matière
+GET    /enseignants/:enseignantId/matieres                   // Matières d'un enseignant
 
-// Création
-{
-  code: string;        // Ex: "UE01"
-  libelle: string;     // Ex: "Algorithmique"
-  semestreId: string;
-}
+// Body création
+{ nom: string; prenom: string; matricule: string; email: string; password: string; specialite?: string; }
 ```
 
-### 3. Matières
+### Évaluations
 
 ```typescript
-GET    /matieres           // Lister toutes
-GET    /matieres/:id       // Détails
-GET    /matieres/ue/:ueId  // Par UE
-POST   /matieres           // Créer (Admin/Secretariat)
-PUT    /matieres/:id       // Modifier (Admin/Secretariat)
-DELETE /matieres/:id       // Supprimer (Admin/Secretariat)
+GET    /evaluations                                          // Lister toutes
+GET    /evaluations/etudiant/:etudiantId                     // Par étudiant
+GET    /evaluations/matiere/:matiereId                       // Par matière
+GET    /evaluations/etudiant/:etudiantId/matiere/:matiereId  // Étudiant + matière
+POST   /evaluations                                          // Créer (Secretariat/Enseignant)
+PUT    /evaluations/:id                                      // Modifier
+DELETE /evaluations/:id                                      // Supprimer
 
-// Création
+// Body création
 {
-  libelle: string;              // Ex: "Développement Web"
-  coefficient: number;          // Ex: 2.5
-  credits: number;              // Ex: 6
-  uniteEnseignementId: string;
-}
-```
-
-### 4. Étudiants
-
-```typescript
-GET    /etudiants                    // Lister tous
-GET    /etudiants/:id                // Détails
-GET    /etudiants/matricule/:matricule // Par matricule
-POST   /etudiants                    // Créer (Admin/Secretariat)
-PUT    /etudiants/:id                // Modifier (Admin/Secretariat)
-DELETE /etudiants/:id                // Supprimer (Admin)
-
-// Création
-{
-  nom: string;
-  prenom: string;
-  matricule: string;
-  email: string;
-  password: string;
-  date_naissance: string;    // Format: "YYYY-MM-DD"
-  lieu_naissance: string;
-  bac_type: string;
-  annee_bac: number;
-  mention_bac: string;
-  telephone?: string;
-  adresse?: string;
-}
-```
-
-### 5. Enseignants
-
-```typescript
-GET    /enseignants                    // Lister tous
-GET    /enseignants/:id                // Détails
-POST   /enseignants                    // Créer (Admin/Secretariat)
-PUT    /enseignants/:id                // Modifier (Admin/Secretariat)
-DELETE /enseignants/:id                // Supprimer (Admin)
-
-// Gestion des matières
-POST   /enseignants/:enseignantId/matieres/:matiereId  // Assigner
-DELETE /enseignants/:enseignantId/matieres/:matiereId  // Retirer
-GET    /enseignants/:enseignantId/matieres             // Lister
-
-// Création
-{
-  nom: string;
-  prenom: string;
-  matricule: string;
-  email: string;
-  password: string;
-  specialite?: string;
-}
-```
-
-### 6. Évaluations
-
-```typescript
-GET    /evaluations                              // Lister toutes
-GET    /evaluations/:id                          // Détails
-GET    /evaluations/etudiant/:etudiantId         // Par étudiant
-GET    /evaluations/matiere/:matiereId           // Par matière
-POST   /evaluations                              // Créer (Secretariat/Enseignant)
-PUT    /evaluations/:id                          // Modifier (Secretariat/Enseignant)
-DELETE /evaluations/:id                          // Supprimer (Secretariat/Enseignant)
-
-// Création
-{
-  utilisateurId: string;  // ID de l'étudiant
+  utilisateurId: string;   // ID de l'étudiant
   matiereId: string;
   type: 'CC' | 'EXAMEN' | 'RATTRAPAGE';
-  note: number;           // Entre 0 et 20
-  saisiePar: string;      // ID de l'utilisateur qui saisit
+  note: number;            // 0 à 20
+  saisiePar: string;       // ID de l'utilisateur qui saisit
 }
 ```
 
-### 7. Calculs
+### Calculs
 
 ```typescript
-POST /calculs/etudiant/:etudiantId/matiere/:matiereId     // Calculer moyenne matière
-POST /calculs/etudiant/:etudiantId/ue/:ueId               // Calculer moyenne UE
-POST /calculs/etudiant/:etudiantId/semestre/:semestreId   // Calculer résultat semestre
-POST /calculs/etudiant/:etudiantId/recalculer-tout        // Recalculer tout
-GET  /calculs/etudiant/:etudiantId/matiere/:matiereId/details // Détails calcul
+POST /calculs/etudiant/:etudiantId/matiere/:matiereId           // Calculer moyenne matière
+POST /calculs/etudiant/:etudiantId/ue/:ueId                     // Calculer moyenne UE
+POST /calculs/etudiant/:etudiantId/semestre/:semestreId         // Calculer résultat semestre
+POST /calculs/etudiant/:etudiantId/recalculer-tout              // Recalculer tout
+GET  /calculs/etudiant/:etudiantId/matiere/:matiereId/details   // Détails calcul
+```
 
-// Permissions: Secretariat/Enseignant (sauf recalculer-tout: Admin/Secretariat)
+---
+
+## 📄 Bulletins (Nouveau)
+
+Ces endpoints agrègent toutes les données nécessaires à la génération des bulletins côté frontend.
+
+### Bulletin Semestre
+
+```typescript
+GET /bulletins/etudiant/:etudiantId/semestre/:semestreId
+```
+
+**Réponse :**
+```typescript
+{
+  etudiant: {
+    id: string;
+    nom: string;
+    prenom: string;
+    matricule: string;
+    dateNaissance: string;
+    lieuNaissance: string;
+    email: string;
+  };
+  semestre: {
+    id: string;
+    code: string;           // "S5"
+    libelle: string;
+    anneeUniversitaire: string;
+  };
+  ues: [
+    {
+      id: string;
+      code: string;         // "UE5-1"
+      libelle: string;
+      creditsTotal: number;
+      moyenne: number | null;
+      creditsAcquis: number;
+      acquise: boolean;
+      compensee: boolean;
+      matieres: [
+        {
+          id: string;
+          libelle: string;
+          coefficient: number;
+          credits: number;
+          noteCC: number | null;
+          noteExamen: number | null;
+          noteRattrapage: number | null;
+          moyenne: number | null;
+          rattrapageUtilise: boolean;
+          absences: number;   // heures
+        }
+      ];
+    }
+  ];
+  resultat: {
+    moyenneSemestre: number;
+    creditsTotal: number;
+    valide: boolean;
+  } | null;
+  statistiques: {
+    moyenneClasse: number;
+    noteMin: number;
+    noteMax: number;
+    ecartType: number;
+    nbEtudiants: number;
+  };
+}
+```
+
+### Bulletin Annuel
+
+```typescript
+GET /bulletins/etudiant/:etudiantId/annuel
+```
+
+**Réponse :**
+```typescript
+{
+  etudiant: { id, nom, prenom, matricule, dateNaissance, lieuNaissance, email };
+  semestres: [
+    {
+      semestre: { id, code, libelle, anneeUniversitaire };
+      ues: [ ... ];          // même structure que bulletin semestre
+      resultat: { moyenneSemestre, creditsTotal, valide };
+      statistiques: { moyenneClasse, noteMin, noteMax, ecartType, nbEtudiants };
+    }
+  ];
+  resultatAnnuel: {
+    moyenneAnnuelle: number | null;
+    mention: 'PASSABLE' | 'ASSEZ_BIEN' | 'BIEN' | 'TRES_BIEN' | null;
+    decisionJury: 'DIPLOME' | 'REPRISE_SOUTENANCE' | 'REDOUBLANCE' | 'ADMISSIBLE_S6' | null;
+    creditsTotal: number;
+    annee: string | null;
+  };
+}
+```
+
+### Récapitulatif Promotion
+
+```typescript
+GET /bulletins/promotion/semestre/:semestreId
+// Accès : Admin / Secretariat uniquement
+```
+
+**Réponse :**
+```typescript
+{
+  semestre: { id, code, libelle, anneeUniversitaire };
+  statistiques: { moyenneClasse, noteMin, noteMax, ecartType, nbEtudiants };
+  nbEtudiants: number;
+  nbValides: number;
+  tauxReussite: number;   // pourcentage
+  etudiants: [
+    {
+      rang: number;
+      etudiantId: string;
+      nom: string;
+      prenom: string;
+      matricule: string;
+      moyenneSemestre: number;
+      creditsTotal: number;
+      valide: boolean;
+      mention: string | null;
+    }
+  ];
+}
 ```
 
 ---
@@ -263,15 +334,36 @@ GET  /calculs/etudiant/:etudiantId/matiere/:matiereId/details // Détails calcul
 | UE | CRUD | CRUD | Lecture | Lecture |
 | Matières | CRUD | CRUD | Lecture | Lecture |
 | Étudiants | CRUD | CRUD | Lecture | Lecture (soi) |
-| Enseignants | CRUD | CRUD | Lecture (soi) | - |
+| Enseignants | CRUD | CRUD | Lecture (soi) | — |
 | Évaluations | CRUD | CRUD | CRUD | Lecture (soi) |
-| Calculs | Tous | Tous | Matière/UE | - |
+| Calculs | Tous | Tous | Matière/UE | — |
+| Bulletin semestre | ✅ | ✅ | ✅ | ✅ (soi) |
+| Bulletin annuel | ✅ | ✅ | ✅ | ✅ (soi) |
+| Recap promotion | ✅ | ✅ | — | — |
 
 ---
 
-## 🎯 Exemples d'Intégration React
+## 🎯 Workflow Génération de Bulletin (Frontend)
 
-### Hook d'authentification
+```typescript
+// 1. Récupérer les données du bulletin
+const { data } = await api.get(`/bulletins/etudiant/${etudiantId}/semestre/${semestreId}`);
+
+// 2. Générer le PDF avec @react-pdf/renderer
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { BulletinPDF } from './components/BulletinPDF';
+
+<PDFDownloadLink
+  document={<BulletinPDF data={data} />}
+  fileName={`bulletin_${data.etudiant.matricule}_${data.semestre.code}.pdf`}
+>
+  Télécharger le bulletin
+</PDFDownloadLink>
+```
+
+---
+
+## 🎯 Hook d'authentification
 
 ```typescript
 // hooks/useAuth.ts
@@ -289,7 +381,7 @@ export const useAuth = () => {
         try {
           const { data } = await api.get('/profil');
           setUser(data);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('token');
         }
       }
@@ -313,96 +405,22 @@ export const useAuth = () => {
 };
 ```
 
-### Composant de liste
-
-```typescript
-// components/SemesterList.tsx
-import { useEffect, useState } from 'react';
-import api from '../services/api';
-
-export const SemesterList = () => {
-  const [semesters, setSemesters] = useState([]);
-
-  useEffect(() => {
-    const fetchSemesters = async () => {
-      const { data } = await api.get('/semestres');
-      setSemesters(data);
-    };
-    fetchSemesters();
-  }, []);
-
-  return (
-    <div>
-      {semesters.map((sem) => (
-        <div key={sem.id}>
-          <h3>{sem.libelle}</h3>
-          <p>{sem.anneeUniversitaire}</p>
-        </div>
-      ))}
-    </div>
-  );
-};
-```
-
-### Formulaire de création
-
-```typescript
-// components/CreateStudent.tsx
-import { useForm } from 'react-hook-form';
-import api from '../services/api';
-
-export const CreateStudent = () => {
-  const { register, handleSubmit } = useForm();
-
-  const onSubmit = async (data) => {
-    try {
-      await api.post('/etudiants', data);
-      alert('Étudiant créé avec succès');
-    } catch (error) {
-      alert('Erreur lors de la création');
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input {...register('nom')} placeholder="Nom" required />
-      <input {...register('prenom')} placeholder="Prénom" required />
-      <input {...register('matricule')} placeholder="Matricule" required />
-      <input {...register('email')} type="email" placeholder="Email" required />
-      <input {...register('password')} type="password" placeholder="Mot de passe" required />
-      <input {...register('date_naissance')} type="date" required />
-      <input {...register('lieu_naissance')} placeholder="Lieu de naissance" required />
-      <input {...register('bac_type')} placeholder="Type de bac" required />
-      <input {...register('annee_bac')} type="number" placeholder="Année du bac" required />
-      <input {...register('mention_bac')} placeholder="Mention" required />
-      <button type="submit">Créer</button>
-    </form>
-  );
-};
-```
-
 ---
 
 ## 🚨 Gestion des Erreurs
 
-### Codes HTTP
-
-- **200**: Succès
-- **201**: Créé avec succès
-- **400**: Requête invalide (champs manquants)
-- **401**: Non authentifié (token manquant/invalide)
-- **403**: Accès refusé (permissions insuffisantes)
-- **404**: Ressource non trouvée
-- **500**: Erreur serveur
-
-### Format des erreurs
+| Code | Signification |
+|------|---------------|
+| 200/201 | Succès |
+| 400 | Requête invalide (champs manquants, rattrapage non autorisé) |
+| 401 | Token manquant ou expiré |
+| 403 | Permissions insuffisantes |
+| 404 | Ressource non trouvée |
+| 500 | Erreur serveur |
 
 ```typescript
-{
-  statusCode: number;
-  message: string;
-  error: string;
-}
+// Format erreur
+{ statusCode: number; message: string; error: string; }
 ```
 
 ---
@@ -418,22 +436,14 @@ export const CreateStudent = () => {
 
 ---
 
-## 📦 Dépendances Recommandées
+## 📦 Dépendances Recommandées (Frontend)
 
 ```bash
 npm install axios react-router-dom react-hook-form
-npm install -D @types/react @types/react-dom
+npm install @react-pdf/renderer          # Génération PDF
+npm install @types/react @types/react-dom -D
 ```
 
 ---
 
-## 🔄 Workflow Type
-
-1. **Connexion** → Stocker le token JWT
-2. **Récupérer le profil** → Afficher les infos utilisateur
-3. **Appels API** → Ajouter le token dans les headers
-4. **Gestion des erreurs** → Rediriger si 401
-
----
-
-**Documentation complète**: [API_ENDPOINTS.md](./API_ENDPOINTS.md)
+**Documentation complète** : [API_ENDPOINTS.md](./API_ENDPOINTS.md)
