@@ -70,10 +70,7 @@ model Etudiant {
   lieu_naissance  String
   bac_type        String
   annee_bac       Int
-  mention_bac     String
-  telephone       String?
-  adresse         String?
-
+  provenance      String
   // NOTE : Plus de relations ici, tout est géré via Utilisateur
   @@map("etudiants")
 }

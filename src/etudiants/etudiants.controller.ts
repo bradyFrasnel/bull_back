@@ -17,7 +17,7 @@ export class EtudiantsController {
   @Post()
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
   @ApiOperation({ summary: 'Créer un étudiant' })
-  @ApiResponse({ status: 201, description: 'Étudiant créé avec succès' })
+  @ApiResponse({ status: 201, description: 'successful' })
   create(@Body() createEtudiantDto: CreateEtudiantDto) {
     return this.etudiantsService.create(createEtudiantDto);
   }

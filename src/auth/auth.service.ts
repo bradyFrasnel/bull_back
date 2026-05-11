@@ -116,10 +116,8 @@ export class AuthService {
         lieu_naissance: createEtudiantDto.lieu_naissance,
         bac_type: createEtudiantDto.bac_type,
         annee_bac: createEtudiantDto.annee_bac,
-        mention_bac: createEtudiantDto.mention_bac,
-        telephone: createEtudiantDto.telephone,
-        adresse: createEtudiantDto.adresse,
-      },
+        provenance: createEtudiantDto.provenance,
+      } as any,
     });
   }
 
