@@ -2,29 +2,17 @@ import { IsString, IsNotEmpty, IsEmail, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterSecretariatDto {
-  @ApiProperty({
-    description: 'Nom d\'utilisateur du secrétariat',
-    example: 'secretariat01',
-    type: String
-  })
+  @ApiProperty({ description: 'Nom d\'utilisateur', example: 'secretariat01' })
   @IsString()
   @IsNotEmpty()
   nom: string;
 
-  @ApiProperty({
-    description: 'Email du secrétariat',
-    example: 'secretariat@asur.fr',
-    type: String
-  })
+  @ApiProperty({ description: 'Email', example: 'secretariat@asur.fr' })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
-  @ApiProperty({
-    description: 'Mot de passe du secrétariat',
-    example: 'password123',
-    type: String
-  })
+  @ApiProperty({ description: 'Mot de passe (min 6 caractères)', example: 'Secret123' })
   @IsString()
   @IsNotEmpty()
   @MinLength(6)

@@ -60,9 +60,12 @@ export class AuthSecretariatController {
   }
 
   @Post('register')
-  @ApiOperation({ summary: 'Enregistrement secrétariat' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMINISTRATEUR)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Créer un compte secrétariat (Admin uniquement)' })
   @ApiResponse({ status: 201, description: 'Compte créé avec succès' })
-  @ApiResponse({ status: 400, description: 'Données invalides' })
+  @ApiResponse({ status: 403, description: 'Accès refusé' })
   async register(@Body() registerDto: RegisterSecretariatDto) {
     return this.authService.registerSecretariat(registerDto);
   }

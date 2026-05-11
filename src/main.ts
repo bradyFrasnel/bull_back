@@ -2,13 +2,29 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Headers de sécurité HTTP
+  app.use(helmet({
+    crossOriginEmbedderPolicy: false, // Nécessaire pour Swagger UI
+    contentSecurityPolicy: false,     // Désactivé pour Swagger UI
+  }));
+
   // Configuration CORS
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+    : ['http://localhost:3001', 'http://localhost:5173'];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || true, // Accepter toutes les origines en développement
+    origin: (origin, callback) => {
+      // Autoriser les requêtes sans origin (Postman, mobile, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS bloqué pour l'origine: ${origin}`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -25,29 +41,8 @@ async function bootstrap() {
 
   // Configuration Swagger
   const config = new DocumentBuilder()
-    .setTitle('Bull_ASUR - API Authentification')
-    .setDescription(`
-    API d'authentification pour la gestion des bulletins de notes LP ASUR.
-    
-    ## Identifiants de test
-    - **Admin (root)** : identifiant \`root\`, mot de passe \`root\`
-    - **Secretariat (admin)** : identifiant \`admin\`, mot de passe \`admin\`
-    - **Étudiant** : identifiant \`mmartin2024\`, mot de passe \`password123\`
-    - **Enseignant** : identifiant \`jdupontweb\`, mot de passe \`password123\`
-    
-    ## Endpoints disponibles
-    - \`/auth/etudiant/login\` - Connexion étudiant
-    - \`/auth/enseignant/login\` - Connexion enseignant  
-    - \`/auth/admin/login\` - Connexion admin/secretariat
-    - \`/auth/etudiant/change-password\` - Changer mot de passe étudiant
-    - \`/auth/enseignant/change-password\` - Changer mot de passe enseignant
-    
-    ## Authentification
-    1. Testez la connexion avec les identifiants ci-dessus
-    2. Copiez le token JWT retourné
-    3. Cliquez sur le bouton "Authorize" en haut à droite
-    4. Collez le token avec le préfixe \`Bearer\`
-    `)
+    .setTitle('Bull_ASUR - API')
+    .setDescription('API de gestion des bulletins de notes LP ASUR — INPTIC.')
     .setVersion('1.0.0')
     .addBearerAuth(
       {
