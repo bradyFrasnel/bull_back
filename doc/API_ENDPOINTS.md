@@ -257,11 +257,13 @@ Authorization: Bearer <access_token>
 | GET | `/evaluations/matiere/:matiereId` | SECRETARIAT, ENSEIGNANT | Par matière |
 | GET | `/evaluations/type/:type` | SECRETARIAT, ENSEIGNANT | Par type (CC/EXAMEN/RATTRAPAGE) |
 | GET | `/evaluations/etudiant/:etudiantId/matiere/:matiereId` | Tous | Étudiant + matière |
+| GET | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Relevé complet** (tous étudiants + notes) |
 | POST | `/evaluations` | SECRETARIAT, ENSEIGNANT | Créer une évaluation |
 | PUT | `/evaluations/:id` | SECRETARIAT, ENSEIGNANT | Modifier |
+| PUT | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Sauvegarder relevé en masse** |
 | DELETE | `/evaluations/:id` | SECRETARIAT, ENSEIGNANT | Supprimer |
 
-**Body POST :**
+**Body POST (note individuelle) :**
 ```json
 {
   "utilisateurId": "string",
@@ -272,7 +274,33 @@ Authorization: Bearer <access_token>
 }
 ```
 
-> ⚠️ Règle rattrapage : la note de rattrapage n'est autorisée que si la moyenne CC+Examen < 6/20.
+**Body PUT relevé (toute la classe en une requête) :**
+```json
+{
+  "saisiePar": "string",
+  "notes": [
+    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16 },
+    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13 }
+  ]
+}
+```
+
+**Réponse GET relevé :**
+```json
+{
+  "matiere": { "id", "libelle", "coefficient", "credits", "ue", "semestre" },
+  "releve": [
+    {
+      "utilisateurId": "cm123", "nom": "Martin", "prenom": "Sophie", "matricule": "2024ASUR001",
+      "noteCC": 14, "noteExamen": 16, "noteRattrapage": null,
+      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null
+    }
+  ]
+}
+```
+
+> ⚠️ Règle rattrapage : la note de rattrapage n'est autorisée que si la moyenne CC+Examen < 6/20.  
+> ✅ Tout create/update/delete déclenche automatiquement la cascade : moyenne matière → UE → semestre.
 
 ---
 
@@ -287,7 +315,12 @@ Authorization: Bearer <access_token>
 | POST | `/calculs/etudiant/:etudiantId/recalculer-tout` | ADMIN, SECRETARIAT | Recalculer tout |
 | GET | `/calculs/etudiant/:etudiantId/matiere/:matiereId/details` | SECRETARIAT, ENSEIGNANT | Détails calcul matière |
 
-> ℹ️ Le recalcul est déclenché automatiquement à chaque création d'évaluation.
+> ✅ **Recalcul automatique en cascade** : toute création, modification ou suppression d'évaluation déclenche automatiquement le recalcul dans cet ordre :
+> 1. Moyenne matière (`MoyenneMatiere`)
+> 2. Moyenne UE (`MoyenneUE`)
+> 3. Résultat semestre (`ResultatSemestre`)
+>
+> Les endpoints `/calculs` restent disponibles pour forcer un recalcul manuel si nécessaire.
 
 ---
 

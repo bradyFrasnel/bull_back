@@ -230,12 +230,14 @@ GET  /evaluations/etudiant/:etudiantId
 GET  /evaluations/matiere/:matiereId     // SECRETARIAT, ENSEIGNANT
 GET  /evaluations/type/:type             // CC | EXAMEN | RATTRAPAGE
 GET  /evaluations/etudiant/:etudiantId/matiere/:matiereId
+GET  /evaluations/releve/matiere/:matiereId   // ← Relevé complet (tous étudiants + notes)
 POST /evaluations                        // SECRETARIAT, ENSEIGNANT
 PUT  /evaluations/:id
+PUT  /evaluations/releve/matiere/:matiereId   // ← Sauvegarder relevé en masse
 DEL  /evaluations/:id
 ```
 
-**Body POST :**
+**Body POST (note individuelle) :**
 ```json
 {
   "utilisateurId": "string",
@@ -246,14 +248,46 @@ DEL  /evaluations/:id
 }
 ```
 
+**Body PUT relevé (toute la classe en une requête) :**
+```json
+{
+  "saisiePar": "string",
+  "notes": [
+    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16 },
+    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13 }
+  ]
+}
+```
+
+**Réponse GET `/evaluations/releve/matiere/:matiereId` :**
+```json
+{
+  "matiere": { "id", "libelle", "coefficient", "credits", "ue", "semestre" },
+  "releve": [
+    {
+      "utilisateurId": "cm123", "nom": "Martin", "prenom": "Sophie", "matricule": "2024ASUR001",
+      "noteCC": 14, "noteExamen": 16, "noteRattrapage": null,
+      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null
+    }
+  ]
+}
+```
+
+**Réponse PUT relevé :**
+```json
+{ "sauvegardes": 4, "erreurs": 0 }
+```
+
 > ⚠️ Rattrapage autorisé uniquement si moyenne CC+Examen < 6/20. Sinon → erreur 400.
+> 
+> ✅ **Recalcul automatique en cascade** : toute création, modification ou suppression d'évaluation déclenche automatiquement le recalcul de la moyenne matière → moyenne UE → résultat semestre. Aucun appel supplémentaire nécessaire côté frontend.
 
 ---
 
 ## 8. Calculs
 
 ```typescript
-// Déclencher après chaque saisie de note
+// Recalcul manuel si nécessaire (normalement déclenché automatiquement)
 POST /calculs/etudiant/:etudiantId/matiere/:matiereId     // SECRETARIAT, ENSEIGNANT
 POST /calculs/etudiant/:etudiantId/ue/:ueId               // SECRETARIAT, ENSEIGNANT
 POST /calculs/etudiant/:etudiantId/semestre/:semestreId   // ADMIN, SECRETARIAT
@@ -261,7 +295,7 @@ POST /calculs/etudiant/:etudiantId/recalculer-tout        // ADMIN, SECRETARIAT
 GET  /calculs/etudiant/:etudiantId/matiere/:matiereId/details
 ```
 
-> ℹ️ Le calcul matière est déclenché automatiquement à chaque création d'évaluation.
+> ℹ️ Les calculs sont déclenchés **automatiquement** à chaque opération sur les évaluations (create/update/delete). Les endpoints `/calculs` restent disponibles pour forcer un recalcul manuel si nécessaire.
 
 ---
 

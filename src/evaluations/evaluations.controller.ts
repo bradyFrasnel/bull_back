@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { EvaluationsService } from './evaluations.service';
 import { CreateEvaluationDto, TypeEvaluation } from './dto/create-evaluation.dto';
+import { SaveReleveDto } from './dto/releve-matiere.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -85,5 +86,68 @@ export class EvaluationsController {
   @ApiResponse({ status: 200, description: 'Évaluation supprimée' })
   remove(@Param('id') id: string) {
     return this.evaluationsService.remove(id);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RELEVÉ MATIÈRE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @Get('releve/matiere/:matiereId')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @ApiOperation({
+    summary: 'Obtenir le relevé complet d\'une matière (tous les étudiants avec leurs notes)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Relevé avec tous les étudiants et leurs notes CC/Examen/Rattrapage',
+    schema: {
+      example: {
+        matiere: { id: 'mat123', libelle: 'Anglais technique', coefficient: 1, credits: 2, ue: 'UE5-1', semestre: 'Semestre 5' },
+        releve: [
+          {
+            utilisateurId: 'cm123', nom: 'Martin', prenom: 'Sophie', matricule: '2024ASUR001',
+            noteCC: 14, noteExamen: 16, noteRattrapage: null,
+            evalIdCC: 'eval1', evalIdExamen: 'eval2', evalIdRattrapage: null,
+          },
+        ],
+      },
+    },
+  })
+  getReleveMatiere(@Param('matiereId') matiereId: string) {
+    return this.evaluationsService.getReleveMatiere(matiereId);
+  }
+
+  @Put('releve/matiere/:matiereId')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
+  @ApiOperation({
+    summary: 'Sauvegarder le relevé complet d\'une matière (upsert en masse)',
+  })
+  @ApiBody({
+    type: SaveReleveDto,
+    description: 'Notes de tous les étudiants pour cette matière',
+    examples: {
+      exemple: {
+        value: {
+          saisiePar: 'cm456',
+          notes: [
+            { utilisateurId: 'cm123', noteCC: 14, noteExamen: 16 },
+            { utilisateurId: 'cm124', noteCC: 10, noteExamen: 12, noteRattrapage: null },
+          ],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Relevé sauvegardé avec cascade de calculs automatique',
+    schema: {
+      example: { sauvegardes: 4, erreurs: 0 },
+    },
+  })
+  saveReleveMatiere(
+    @Param('matiereId') matiereId: string,
+    @Body() saveReleveDto: SaveReleveDto,
+  ) {
+    return this.evaluationsService.saveReleveMatiere(matiereId, saveReleveDto);
   }
 }
