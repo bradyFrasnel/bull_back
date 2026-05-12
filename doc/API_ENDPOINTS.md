@@ -94,8 +94,8 @@ Authorization: Bearer <access_token>
   "nom": "string", "prenom": "string", "matricule": "string",
   "email": "string", "password": "string",
   "date_naissance": "YYYY-MM-DD", "lieu_naissance": "string",
-  "bac_type": "string", "annee_bac": 2020, "mention_bac": "string",
-  "telephone": "string (optionnel)", "adresse": "string (optionnel)"
+  "bac_type": "string", "annee_bac": 2020,
+  "provenance": "string"
 }
 ```
 
@@ -216,8 +216,8 @@ Authorization: Bearer <access_token>
   "nom": "string", "prenom": "string", "matricule": "string",
   "email": "string", "password": "string",
   "date_naissance": "YYYY-MM-DD", "lieu_naissance": "string",
-  "bac_type": "string", "annee_bac": 2020, "mention_bac": "string",
-  "telephone": "string (optionnel)", "adresse": "string (optionnel)"
+  "bac_type": "string", "annee_bac": 2020,
+  "provenance": "string"
 }
 ```
 

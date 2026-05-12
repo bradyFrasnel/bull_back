@@ -16,7 +16,12 @@ async function bootstrap() {
   // Configuration CORS
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
-    : ['http://localhost:3001', 'http://localhost:5173'];
+    : [
+        'http://localhost:3001',
+        'http://localhost:5173',
+        'http://localhost:5174',  // Vite dev (port alternatif)
+        'http://localhost:4173',  // Vite preview
+      ];
 
   app.enableCors({
     origin: (origin, callback) => {

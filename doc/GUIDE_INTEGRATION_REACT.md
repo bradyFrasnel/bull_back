@@ -148,8 +148,8 @@ POST /auth/admin/create-etudiant
   "nom": "string", "prenom": "string", "matricule": "string",
   "email": "string", "password": "string",
   "date_naissance": "YYYY-MM-DD", "lieu_naissance": "string",
-  "bac_type": "string", "annee_bac": 2020, "mention_bac": "string",
-  "telephone": "string?", "adresse": "string?"
+  "bac_type": "string", "annee_bac": 2020,
+  "provenance": "string"
 }
 ```
 
@@ -196,6 +196,15 @@ GET  /etudiants/user/:userId
 POST /etudiants                          // ADMIN, SECRETARIAT
 PUT  /etudiants/:id                      // ADMIN, SECRETARIAT
 DEL  /etudiants/:id                      // ADMIN uniquement
+
+// Body POST /etudiants
+// {
+//   "nom": "string", "prenom": "string", "matricule": "string",
+//   "email": "string", "password": "string",
+//   "date_naissance": "YYYY-MM-DD", "lieu_naissance": "string",
+//   "bac_type": "string", "annee_bac": 2020,
+//   "provenance": "string"
+// }
 
 // Enseignants
 GET  /enseignants                        // ADMIN, SECRETARIAT
