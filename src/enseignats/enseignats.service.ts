@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnseignantDto } from './dto/create-enseignats.dto';
 import * as bcrypt from 'bcrypt';
@@ -69,11 +69,6 @@ export class EnseignantsService {
             role: true,
           },
         },
-        matieresEnseignees: {
-          include: {
-            matiere: true,
-          },
-        },
       },
     });
   }
@@ -96,8 +91,18 @@ export class EnseignantsService {
   }
 
   async remove(utilisateurId: string) {
-    return this.prisma.enseignant.delete({
-      where: { utilisateurId },
+    // Vérifier que l'utilisateur existe avant de supprimer
+    const utilisateur = await this.prisma.utilisateur.findUnique({
+      where: { id: utilisateurId },
+    });
+
+    if (!utilisateur) {
+      throw new NotFoundException(`Enseignant avec l'ID "${utilisateurId}" non trouvé`);
+    }
+
+    // Supprimer l'utilisateur parent — cascade supprime automatiquement l'enseignant
+    return this.prisma.utilisateur.delete({
+      where: { id: utilisateurId },
     });
   }
 
@@ -161,13 +166,12 @@ export class EnseignantsService {
 
   async findMatieresEnseignees(utilisateurId: string) {
     return this.prisma.matiereEnseignant.findMany({
-      where: { utilisateurId }, // Vérifier le nom exact de la FK dans le schéma
+      where: { utilisateurId },
       include: {
         matiere: true,
         utilisateur: {
           select: {
             nom: true,
-            prenom: true,
           },
         },
       },

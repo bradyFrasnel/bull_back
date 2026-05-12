@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import * as bcrypt from 'bcrypt';
@@ -95,8 +95,18 @@ export class EtudiantsService {
   }
 
   async remove(utilisateurId: string) {
-    return this.prisma.etudiant.delete({
-      where: { utilisateurId },
+    // Vérifier que l'utilisateur existe avant de supprimer
+    const utilisateur = await this.prisma.utilisateur.findUnique({
+      where: { id: utilisateurId },
+    });
+
+    if (!utilisateur) {
+      throw new NotFoundException(`Étudiant avec l'ID "${utilisateurId}" non trouvé`);
+    }
+
+    // Supprimer l'utilisateur parent — cascade supprime automatiquement l'étudiant
+    return this.prisma.utilisateur.delete({
+      where: { id: utilisateurId },
     });
   }
 

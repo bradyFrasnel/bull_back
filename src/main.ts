@@ -21,12 +21,18 @@ async function bootstrap() {
         'http://localhost:5173',
         'http://localhost:5174',  // Vite dev (port alternatif)
         'http://localhost:4173',  // Vite preview
+        'http://localhost:4174',  // Vite preview (port alternatif)
       ];
 
   app.enableCors({
     origin: (origin, callback) => {
       // Autoriser les requêtes sans origin (Postman, mobile, etc.)
       if (!origin) return callback(null, true);
+      // En développement : autoriser tous les localhost
+      if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+      // En production : whitelist stricte
       if (allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error(`CORS bloqué pour l'origine: ${origin}`));
     },
