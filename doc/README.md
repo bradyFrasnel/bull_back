@@ -248,6 +248,13 @@ import { BulletinPDF } from './components/BulletinPDF';
 
 ---
 
+## ⚠️ Notes importantes
+
+- Les comptes étudiants/enseignants créés **avant le 12/05/2026** ont leur mot de passe stocké en clair (bug corrigé). Ces comptes doivent être **supprimés et recréés** pour pouvoir se connecter.
+- Le hashage bcrypt est maintenant appliqué sur tous les endpoints de création : `POST /etudiants`, `POST /enseignants`, `POST /auth/admin/create-etudiant`, `POST /auth/admin/create-enseignant`.
+
+---
+
 ## 📋 Ce qui reste à faire (Frontend)
 
 | Fonctionnalité | Responsabilité |
