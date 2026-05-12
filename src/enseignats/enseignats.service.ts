@@ -121,8 +121,16 @@ export class EnseignantsService {
   }
 
   async assignMatiere(enseignantId: string, matiereId: string) {
-    return this.prisma.matiereEnseignant.create({
-      data: {
+    // upsert : crée si n'existe pas, ignore si déjà assigné
+    return this.prisma.matiereEnseignant.upsert({
+      where: {
+        utilisateurId_matiereId: {
+          utilisateurId: enseignantId,
+          matiereId,
+        },
+      },
+      update: {}, // rien à mettre à jour
+      create: {
         utilisateurId: enseignantId,
         matiereId,
       },
