@@ -109,7 +109,7 @@ model UniteEnseignement {
   updatedAt DateTime @updatedAt
 
   // Relations
-  semestre  Semestre @relation(fields: [semestreId], references: [id])
+  semestre  Semestre @relation(fields: [semestreId], references: [id], onDelete: Cascade)
   matieres  Matiere[]
   moyenneUEs MoyenneUE[]
 
@@ -126,7 +126,7 @@ model Matiere {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id])
+  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id], onDelete: Cascade)
   evaluations     Evaluation[]
   absences         Absence[]
   moyenneMatieres  MoyenneMatiere[]
@@ -147,7 +147,7 @@ model Evaluation {
 
   // Relations
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
-  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, matiereId, type])
   @@map("evaluations")
@@ -170,7 +170,7 @@ model Absence {
 
   // Relations
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
-  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, matiereId])
   @@map("absences")
@@ -188,7 +188,7 @@ model MoyenneMatiere {
 
   // Relations
   utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id])
-  matiere         Matiere     @relation(fields: [matiereId], references: [id])
+  matiere         Matiere     @relation(fields: [matiereId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, matiereId])
   @@map("moyenne_matieres")
@@ -206,7 +206,7 @@ model MoyenneUE {
 
   // Relations
   utilisateur       Utilisateur @relation(fields: [utilisateurId], references: [id])
-  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id])
+  uniteEnseignement UniteEnseignement @relation(fields: [uniteEnseignementId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, uniteEnseignementId])
   @@map("moyenne_ues")
@@ -224,7 +224,7 @@ model ResultatSemestre {
 
   // Relations
   utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
-  semestre       Semestre    @relation(fields: [semestreId], references: [id])
+  semestre       Semestre    @relation(fields: [semestreId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, semestreId])
   @@map("resultat_semestres")
@@ -269,7 +269,7 @@ model MatiereEnseignant {
 
   // Relations
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
-  matiere       Matiere     @relation(fields: [matiereId], references: [id])
+  matiere       Matiere     @relation(fields: [matiereId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, matiereId])
   @@map("matiere_enseignant")
