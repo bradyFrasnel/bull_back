@@ -24,6 +24,14 @@ export class EvaluationsService {
     }
   }
 
+  private assertMatiereExistsSync(matiere: { id: string } | null, matiereId: string): asserts matiere is { id: string } {
+    if (!matiere) {
+      throw new NotFoundException(
+        `Matière introuvable (id: ${matiereId}). Vérifiez l'identifiant ou rechargez les matières depuis l'API (référentiel modifié ou cache obsolète).`,
+      );
+    }
+  }
+
   private async assertEtudiantUtilisateur(utilisateurId: string): Promise<void> {
     const u = await this.prisma.utilisateur.findUnique({
       where: { id: utilisateurId },
@@ -298,20 +306,26 @@ export class EvaluationsService {
 
   // ─────────────────────────────────────────────────────────────────────────
   // RELEVÉ MATIÈRE — SAVE (upsert en masse)
-  // Sauvegarde toutes les notes d'une matière en une seule requête
+  // Précharge les évaluations, traite les étudiants en parallèle (lots), puis
+  // recalculs en parallèle bornée — évite N×(findMany + cascade) séquentiels.
   // ─────────────────────────────────────────────────────────────────────────
   async saveReleveMatiere(matiereId: string, saveReleveDto: SaveReleveDto) {
     const { saisiePar, notes } = saveReleveDto;
-    const resultats: any[] = [];
-    const erreurs: any[] = [];
-
-    await this.assertMatiereExists(matiereId);
+    const resultats: unknown[] = [];
+    const erreurs: Array<{ utilisateurId: string; type?: TypeEvaluation; erreur: string }> = [];
 
     const utilisateurIds = [...new Set(notes.map((n) => n.utilisateurId))];
-    const users = await this.prisma.utilisateur.findMany({
-      where: { id: { in: utilisateurIds } },
-      select: { id: true, etudiant: { select: { utilisateurId: true } } },
-    });
+    const [matiereRow, users] = await Promise.all([
+      this.prisma.matiere.findUnique({
+        where: { id: matiereId },
+        select: { id: true },
+      }),
+      this.prisma.utilisateur.findMany({
+        where: { id: { in: utilisateurIds } },
+        select: { id: true, etudiant: { select: { utilisateurId: true } } },
+      }),
+    ]);
+    this.assertMatiereExistsSync(matiereRow, matiereId);
     const sansProfilEtudiant = utilisateurIds.filter((id) => {
       const u = users.find((x) => x.id === id);
       return !u || !u.etudiant;
@@ -322,69 +336,110 @@ export class EvaluationsService {
       );
     }
 
-    for (const noteEtudiant of notes) {
+    const existingEvals = await this.prisma.evaluation.findMany({
+      where: { matiereId, utilisateurId: { in: utilisateurIds } },
+      select: { utilisateurId: true, type: true, note: true },
+    });
+    const noteState = new Map<string, number | null>();
+    for (const e of existingEvals) {
+      noteState.set(`${e.utilisateurId}:${e.type}`, e.note);
+    }
+
+    const touched = new Set<string>();
+    /** Étudiants en parallèle ; par étudiant CC et EXAMEN en parallèle puis RATTRAPAGE. */
+    const STUDENT_CONCURRENCY = 16;
+    const RECALC_CONCURRENCY = 8;
+
+    const upsertOne = async (
+      utilisateurId: string,
+      type: TypeEvaluation,
+      note: number,
+    ): Promise<void> => {
+      const evaluation = await this.prisma.evaluation.upsert({
+        where: {
+          utilisateurId_matiereId_type: { utilisateurId, matiereId, type },
+        },
+        update: { note, saisiePar },
+        create: { utilisateurId, matiereId, type, note, saisiePar },
+      });
+      noteState.set(`${utilisateurId}:${type}`, note);
+      resultats.push(evaluation);
+      touched.add(utilisateurId);
+    };
+
+    const processStudent = async (noteEtudiant: (typeof notes)[number]) => {
       const { utilisateurId, noteCC, noteExamen, noteRattrapage } = noteEtudiant;
 
-      // Traiter chaque type de note
-      const typesNotes = [
-        { type: TypeEvaluation.CC, note: noteCC },
-        { type: TypeEvaluation.EXAMEN, note: noteExamen },
-        { type: TypeEvaluation.RATTRAPAGE, note: noteRattrapage },
-      ];
-
-      for (const { type, note } of typesNotes) {
-        if (note === undefined || note === null) continue; // ignorer les champs vides
-
-        try {
-          // Validation rattrapage
-          if (type === TypeEvaluation.RATTRAPAGE) {
-            const evalsInitiales = await this.prisma.evaluation.findMany({
-              where: {
-                utilisateurId,
-                matiereId,
-                type: { in: [TypeEvaluation.CC, TypeEvaluation.EXAMEN] },
-              },
-            });
-
-            let moyenneInitiale = 0;
-            evalsInitiales.forEach((ev) => {
-              if (ev.note !== null) {
-                if (ev.type === TypeEvaluation.CC) moyenneInitiale += ev.note * 0.6;
-                else if (ev.type === TypeEvaluation.EXAMEN) moyenneInitiale += ev.note * 0.4;
-              }
-            });
-
-            if (moyenneInitiale >= 6) {
-              erreurs.push({
-                utilisateurId,
-                type,
-                erreur: `Rattrapage non autorisé : moyenne initiale (${moyenneInitiale.toFixed(2)}) ≥ 6/20`,
-              });
-              continue;
-            }
-          }
-
-          // Upsert : créer ou mettre à jour
-          const evaluation = await this.prisma.evaluation.upsert({
-            where: {
-              utilisateurId_matiereId_type: { utilisateurId, matiereId, type },
-            },
-            update: { note, saisiePar },
-            create: { utilisateurId, matiereId, type, note, saisiePar },
-          });
-
-          resultats.push(evaluation);
-        } catch (error) {
-          erreurs.push({
-            utilisateurId,
-            type,
-            erreur: error instanceof Error ? error.message : String(error),
-          });
+      const getEffective = (t: TypeEvaluation): number | null => {
+        if (t === TypeEvaluation.CC && noteCC !== undefined && noteCC !== null) return noteCC;
+        if (t === TypeEvaluation.EXAMEN && noteExamen !== undefined && noteExamen !== null) {
+          return noteExamen;
         }
+        return noteState.get(`${utilisateurId}:${t}`) ?? null;
+      };
+
+      const early: Array<Promise<void>> = [];
+      if (noteCC !== undefined && noteCC !== null) {
+        early.push(
+          upsertOne(utilisateurId, TypeEvaluation.CC, noteCC).catch((error) => {
+            erreurs.push({
+              utilisateurId,
+              type: TypeEvaluation.CC,
+              erreur: error instanceof Error ? error.message : String(error),
+            });
+          }),
+        );
+      }
+      if (noteExamen !== undefined && noteExamen !== null) {
+        early.push(
+          upsertOne(utilisateurId, TypeEvaluation.EXAMEN, noteExamen).catch((error) => {
+            erreurs.push({
+              utilisateurId,
+              type: TypeEvaluation.EXAMEN,
+              erreur: error instanceof Error ? error.message : String(error),
+            });
+          }),
+        );
+      }
+      await Promise.all(early);
+
+      if (noteRattrapage === undefined || noteRattrapage === null) return;
+
+      const ncc = getEffective(TypeEvaluation.CC);
+      const nex = getEffective(TypeEvaluation.EXAMEN);
+      let moyenneInitiale = 0;
+      if (ncc !== null) moyenneInitiale += ncc * 0.6;
+      if (nex !== null) moyenneInitiale += nex * 0.4;
+
+      if (moyenneInitiale >= 6) {
+        erreurs.push({
+          utilisateurId,
+          type: TypeEvaluation.RATTRAPAGE,
+          erreur: `Rattrapage non autorisé : moyenne initiale (${moyenneInitiale.toFixed(2)}) ≥ 6/20`,
+        });
+        return;
       }
 
-      // Cascade complète pour cet étudiant après toutes ses notes
-      await this.recalculerCascade(utilisateurId, matiereId);
+      try {
+        await upsertOne(utilisateurId, TypeEvaluation.RATTRAPAGE, noteRattrapage);
+      } catch (error) {
+        erreurs.push({
+          utilisateurId,
+          type: TypeEvaluation.RATTRAPAGE,
+          erreur: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    for (let i = 0; i < notes.length; i += STUDENT_CONCURRENCY) {
+      const chunk = notes.slice(i, i + STUDENT_CONCURRENCY);
+      await Promise.all(chunk.map((row) => processStudent(row)));
+    }
+
+    const idsToRecalc = [...touched];
+    for (let i = 0; i < idsToRecalc.length; i += RECALC_CONCURRENCY) {
+      const chunk = idsToRecalc.slice(i, i + RECALC_CONCURRENCY);
+      await Promise.all(chunk.map((uid) => this.recalculerCascade(uid, matiereId)));
     }
 
     return {
