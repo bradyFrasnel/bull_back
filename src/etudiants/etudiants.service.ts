@@ -104,7 +104,7 @@ export class EtudiantsService {
       throw new NotFoundException(`Étudiant avec l'ID "${utilisateurId}" non trouvé`);
     }
 
-    // Supprimer l'utilisateur parent — cascade supprime automatiquement l'étudiant
+    // Supprime l'utilisateur ; en base, CASCADE efface étudiant + évaluations, absences, moyennes, résultats, affectations matière.
     return this.prisma.utilisateur.delete({
       where: { id: utilisateurId },
     });

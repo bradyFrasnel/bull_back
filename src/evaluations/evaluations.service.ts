@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEvaluationDto, TypeEvaluation } from './dto/create-evaluation.dto';
 import { SaveReleveDto } from './dto/releve-matiere.dto';
@@ -10,6 +10,34 @@ export class EvaluationsService {
     private prisma: PrismaService,
     private calculsService: CalculsService,
   ) {}
+
+  /** Évite P2003 opaque : matière inexistante (IDs obsolètes, mauvaise clé côté client). */
+  private async assertMatiereExists(matiereId: string): Promise<void> {
+    const exists = await this.prisma.matiere.findUnique({
+      where: { id: matiereId },
+      select: { id: true },
+    });
+    if (!exists) {
+      throw new NotFoundException(
+        `Matière introuvable (id: ${matiereId}). Vérifiez l'identifiant ou rechargez les matières depuis l'API (référentiel modifié ou cache obsolète).`,
+      );
+    }
+  }
+
+  private async assertEtudiantUtilisateur(utilisateurId: string): Promise<void> {
+    const u = await this.prisma.utilisateur.findUnique({
+      where: { id: utilisateurId },
+      select: { id: true, etudiant: { select: { utilisateurId: true } } },
+    });
+    if (!u) {
+      throw new NotFoundException(`Utilisateur introuvable (id: ${utilisateurId}).`);
+    }
+    if (!u.etudiant) {
+      throw new BadRequestException(
+        "Une évaluation ne peut être liée qu'à un compte étudiant (profil étudiant requis).",
+      );
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // CASCADE COMPLÈTE : matière → UE → semestre
@@ -81,6 +109,9 @@ export class EvaluationsService {
         );
       }
     }
+
+    await this.assertMatiereExists(createEvaluationDto.matiereId);
+    await this.assertEtudiantUtilisateur(createEvaluationDto.utilisateurId);
 
     // Créer l'évaluation
     const evaluation = await this.prisma.evaluation.create({
@@ -273,6 +304,23 @@ export class EvaluationsService {
     const { saisiePar, notes } = saveReleveDto;
     const resultats: any[] = [];
     const erreurs: any[] = [];
+
+    await this.assertMatiereExists(matiereId);
+
+    const utilisateurIds = [...new Set(notes.map((n) => n.utilisateurId))];
+    const users = await this.prisma.utilisateur.findMany({
+      where: { id: { in: utilisateurIds } },
+      select: { id: true, etudiant: { select: { utilisateurId: true } } },
+    });
+    const sansProfilEtudiant = utilisateurIds.filter((id) => {
+      const u = users.find((x) => x.id === id);
+      return !u || !u.etudiant;
+    });
+    if (sansProfilEtudiant.length > 0) {
+      throw new BadRequestException(
+        `Identifiants invalides ou non étudiants : ${sansProfilEtudiant.join(', ')}`,
+      );
+    }
 
     for (const noteEtudiant of notes) {
       const { utilisateurId, noteCC, noteExamen, noteRattrapage } = noteEtudiant;
