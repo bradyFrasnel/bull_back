@@ -257,10 +257,10 @@ Authorization: Bearer <access_token>
 | GET | `/evaluations/matiere/:matiereId` | SECRETARIAT, ENSEIGNANT | Par matière |
 | GET | `/evaluations/type/:type` | SECRETARIAT, ENSEIGNANT | Par type (CC/EXAMEN/RATTRAPAGE) |
 | GET | `/evaluations/etudiant/:etudiantId/matiere/:matiereId` | Tous | Étudiant + matière |
-| GET | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Relevé complet** (tous étudiants + notes) |
+| GET | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Relevé complet** (étudiants : notes + absences) |
 | POST | `/evaluations` | SECRETARIAT, ENSEIGNANT | Créer une évaluation |
 | PUT | `/evaluations/:id` | SECRETARIAT, ENSEIGNANT | Modifier |
-| PUT | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Sauvegarder relevé en masse** |
+| PUT | `/evaluations/releve/matiere/:matiereId` | ADMIN, SECRETARIAT, ENSEIGNANT | **Sauvegarder relevé en masse** (notes + absences) |
 | DELETE | `/evaluations/:id` | SECRETARIAT, ENSEIGNANT | Supprimer |
 
 **Body POST (note individuelle) :**
@@ -275,12 +275,24 @@ Authorization: Bearer <access_token>
 ```
 
 **Body PUT relevé (toute la classe en une requête) :**
+
+Chaque entrée de `notes` peut contenir des champs de notes et/ou d'absences. Seuls les champs **présents** sont mis à jour (omission = pas de changement pour ce champ).
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `utilisateurId` | string | **Requis** — id utilisateur de l'étudiant |
+| `noteCC` | number | Note CC (0–20), optionnel |
+| `noteExamen` | number | Note examen (0–20), optionnel |
+| `noteRattrapage` | number | Note rattrapage (0–20), optionnel |
+| `absences` | number | Heures d'absence pour cette matière, optionnel |
+| `heuresAbsence` | number | Alias accepté de `absences` |
+
 ```json
 {
   "saisiePar": "string",
   "notes": [
-    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16 },
-    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13 }
+    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16, "absences": 2 },
+    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13, "absences": 0 }
   ]
 }
 ```
@@ -293,14 +305,26 @@ Authorization: Bearer <access_token>
     {
       "utilisateurId": "cm123", "nom": "Martin", "prenom": "Sophie", "matricule": "2024ASUR001",
       "noteCC": 14, "noteExamen": 16, "noteRattrapage": null,
-      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null
+      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null,
+      "absences": 2, "absenceId": "abs1"
     }
   ]
 }
 ```
 
+**Réponse PUT relevé :**
+```json
+{
+  "sauvegardes": 4,
+  "absencesSauvegardees": 2,
+  "erreurs": 0,
+  "details": []
+}
+```
+
 > ⚠️ Règle rattrapage : la note de rattrapage n'est autorisée que si la moyenne CC+Examen < 6/20.  
-> ✅ Tout create/update/delete déclenche automatiquement la cascade : moyenne matière → UE → semestre.
+> ⚠️ `absences` doit être ≥ 0 si fourni.  
+> ✅ Les notes déclenchent la cascade : moyenne matière → UE → semestre. Les absences sont enregistrées sans recalcul de moyenne (pénalité éventuelle côté bulletin / paramétrage).
 
 ---
 

@@ -95,11 +95,11 @@ export class EvaluationsController {
   @Get('releve/matiere/:matiereId')
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({
-    summary: 'Obtenir le relevé complet d\'une matière (tous les étudiants avec leurs notes)',
+    summary: 'Obtenir le relevé complet d\'une matière (notes et absences par étudiant)',
   })
   @ApiResponse({
     status: 200,
-    description: 'Relevé avec tous les étudiants et leurs notes CC/Examen/Rattrapage',
+    description: 'Relevé avec notes CC/Examen/Rattrapage et heures d\'absence par étudiant',
     schema: {
       example: {
         matiere: { id: 'mat123', libelle: 'Anglais technique', coefficient: 1, credits: 2, ue: 'UE5-1', semestre: 'Semestre 5' },
@@ -108,6 +108,7 @@ export class EvaluationsController {
             utilisateurId: 'cm123', nom: 'Martin', prenom: 'Sophie', matricule: '2024ASUR001',
             noteCC: 14, noteExamen: 16, noteRattrapage: null,
             evalIdCC: 'eval1', evalIdExamen: 'eval2', evalIdRattrapage: null,
+            absences: 2, absenceId: 'abs1',
           },
         ],
       },
@@ -120,18 +121,18 @@ export class EvaluationsController {
   @Put('releve/matiere/:matiereId')
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({
-    summary: 'Sauvegarder le relevé complet d\'une matière (upsert en masse)',
+    summary: 'Sauvegarder le relevé complet d\'une matière (notes et absences, upsert en masse)',
   })
   @ApiBody({
     type: SaveReleveDto,
-    description: 'Notes de tous les étudiants pour cette matière',
+    description: 'Notes et heures d\'absence de tous les étudiants pour cette matière',
     examples: {
       exemple: {
         value: {
           saisiePar: 'cm456',
           notes: [
-            { utilisateurId: 'cm123', noteCC: 14, noteExamen: 16 },
-            { utilisateurId: 'cm124', noteCC: 10, noteExamen: 12, noteRattrapage: null },
+            { utilisateurId: 'cm123', noteCC: 14, noteExamen: 16, absences: 2 },
+            { utilisateurId: 'cm124', noteCC: 10, noteExamen: 12, absences: 0 },
           ],
         },
       },
@@ -141,7 +142,7 @@ export class EvaluationsController {
     status: 200,
     description: 'Relevé sauvegardé avec cascade de calculs automatique',
     schema: {
-      example: { sauvegardes: 4, erreurs: 0 },
+      example: { sauvegardes: 4, absencesSauvegardees: 2, erreurs: 0 },
     },
   })
   saveReleveMatiere(

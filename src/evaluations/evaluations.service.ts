@@ -261,21 +261,21 @@ export class EvaluationsService {
       orderBy: { matricule: 'asc' },
     });
 
-    // Récupérer toutes les évaluations existantes pour cette matière
-    const evaluations = await this.prisma.evaluation.findMany({
-      where: { matiereId },
-    });
+    const [evaluations, absencesRows, matiere] = await Promise.all([
+      this.prisma.evaluation.findMany({ where: { matiereId } }),
+      this.prisma.absence.findMany({ where: { matiereId } }),
+      this.prisma.matiere.findUnique({
+        where: { id: matiereId },
+        include: { uniteEnseignement: { include: { semestre: true } } },
+      }),
+    ]);
 
-    // Récupérer la matière
-    const matiere = await this.prisma.matiere.findUnique({
-      where: { id: matiereId },
-      include: { uniteEnseignement: { include: { semestre: true } } },
-    });
-
-    // Construire le relevé : un objet par étudiant avec ses notes
     const releve = etudiants.map((etudiant) => {
       const evals = evaluations.filter(
         (e) => e.utilisateurId === etudiant.utilisateurId,
+      );
+      const absence = absencesRows.find(
+        (a) => a.utilisateurId === etudiant.utilisateurId,
       );
       return {
         utilisateurId: etudiant.utilisateurId,
@@ -288,6 +288,8 @@ export class EvaluationsService {
         evalIdCC: evals.find((e) => e.type === 'CC')?.id ?? null,
         evalIdExamen: evals.find((e) => e.type === 'EXAMEN')?.id ?? null,
         evalIdRattrapage: evals.find((e) => e.type === 'RATTRAPAGE')?.id ?? null,
+        absences: absence?.heures ?? null,
+        absenceId: absence?.id ?? null,
       };
     });
 
@@ -312,7 +314,12 @@ export class EvaluationsService {
   async saveReleveMatiere(matiereId: string, saveReleveDto: SaveReleveDto) {
     const { saisiePar, notes } = saveReleveDto;
     const resultats: unknown[] = [];
-    const erreurs: Array<{ utilisateurId: string; type?: TypeEvaluation; erreur: string }> = [];
+    const absencesSauvegardees: unknown[] = [];
+    const erreurs: Array<{
+      utilisateurId: string;
+      type?: TypeEvaluation | 'ABSENCE';
+      erreur: string;
+    }> = [];
 
     const utilisateurIds = [...new Set(notes.map((n) => n.utilisateurId))];
     const [matiereRow, users] = await Promise.all([
@@ -350,6 +357,17 @@ export class EvaluationsService {
     const STUDENT_CONCURRENCY = 16;
     const RECALC_CONCURRENCY = 8;
 
+    const upsertAbsence = async (utilisateurId: string, heures: number): Promise<void> => {
+      const row = await this.prisma.absence.upsert({
+        where: {
+          utilisateurId_matiereId: { utilisateurId, matiereId },
+        },
+        update: { heures },
+        create: { utilisateurId, matiereId, heures },
+      });
+      absencesSauvegardees.push(row);
+    };
+
     const upsertOne = async (
       utilisateurId: string,
       type: TypeEvaluation,
@@ -369,6 +387,8 @@ export class EvaluationsService {
 
     const processStudent = async (noteEtudiant: (typeof notes)[number]) => {
       const { utilisateurId, noteCC, noteExamen, noteRattrapage } = noteEtudiant;
+      const heuresAbsence =
+        noteEtudiant.absences ?? noteEtudiant.heuresAbsence;
 
       const getEffective = (t: TypeEvaluation): number | null => {
         if (t === TypeEvaluation.CC && noteCC !== undefined && noteCC !== null) return noteCC;
@@ -429,6 +449,26 @@ export class EvaluationsService {
           erreur: error instanceof Error ? error.message : String(error),
         });
       }
+
+      if (heuresAbsence !== undefined && heuresAbsence !== null) {
+        if (heuresAbsence < 0) {
+          erreurs.push({
+            utilisateurId,
+            type: 'ABSENCE',
+            erreur: "Les heures d'absence ne peuvent pas être négatives",
+          });
+        } else {
+          try {
+            await upsertAbsence(utilisateurId, heuresAbsence);
+          } catch (error) {
+            erreurs.push({
+              utilisateurId,
+              type: 'ABSENCE',
+              erreur: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      }
     };
 
     for (let i = 0; i < notes.length; i += STUDENT_CONCURRENCY) {
@@ -444,6 +484,7 @@ export class EvaluationsService {
 
     return {
       sauvegardes: resultats.length,
+      absencesSauvegardees: absencesSauvegardees.length,
       erreurs: erreurs.length,
       details: erreurs.length > 0 ? erreurs : undefined,
     };

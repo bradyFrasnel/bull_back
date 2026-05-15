@@ -230,10 +230,10 @@ GET  /evaluations/etudiant/:etudiantId
 GET  /evaluations/matiere/:matiereId     // SECRETARIAT, ENSEIGNANT
 GET  /evaluations/type/:type             // CC | EXAMEN | RATTRAPAGE
 GET  /evaluations/etudiant/:etudiantId/matiere/:matiereId
-GET  /evaluations/releve/matiere/:matiereId   // ← Relevé complet (tous étudiants + notes)
+GET  /evaluations/releve/matiere/:matiereId   // ← Relevé complet (notes + absences par étudiant)
 POST /evaluations                        // SECRETARIAT, ENSEIGNANT
 PUT  /evaluations/:id
-PUT  /evaluations/releve/matiere/:matiereId   // ← Sauvegarder relevé en masse
+PUT  /evaluations/releve/matiere/:matiereId   // ← Sauvegarder relevé en masse (notes + absences)
 DEL  /evaluations/:id
 ```
 
@@ -249,14 +249,34 @@ DEL  /evaluations/:id
 ```
 
 **Body PUT relevé (toute la classe en une requête) :**
+
+Inclure `absences` (heures) dans chaque ligne modifiée — sinon les absences ne sont pas mises à jour côté serveur.
+
 ```json
 {
   "saisiePar": "string",
   "notes": [
-    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16 },
-    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13 }
+    { "utilisateurId": "cm123", "noteCC": 14, "noteExamen": 16, "absences": 2 },
+    { "utilisateurId": "cm124", "noteCC": 10, "noteExamen": 12, "noteRattrapage": 13, "absences": 0 }
   ]
 }
+```
+
+Champs optionnels par étudiant : `noteCC`, `noteExamen`, `noteRattrapage`, `absences` (ou alias `heuresAbsence`). Champ omis = pas de mise à jour pour ce champ.
+
+**Exemple TypeScript (sauvegarde grille admin / enseignant) :**
+
+```typescript
+await api.put(`/evaluations/releve/matiere/${matiereId}`, {
+  saisiePar: user.id,
+  notes: lignes.map((l) => ({
+    utilisateurId: l.utilisateurId,
+    ...(l.noteCC != null && { noteCC: l.noteCC }),
+    ...(l.noteExamen != null && { noteExamen: l.noteExamen }),
+    ...(l.noteRattrapage != null && { noteRattrapage: l.noteRattrapage }),
+    ...(l.absences != null && { absences: l.absences }),
+  })),
+});
 ```
 
 **Réponse GET `/evaluations/releve/matiere/:matiereId` :**
@@ -267,7 +287,8 @@ DEL  /evaluations/:id
     {
       "utilisateurId": "cm123", "nom": "Martin", "prenom": "Sophie", "matricule": "2024ASUR001",
       "noteCC": 14, "noteExamen": 16, "noteRattrapage": null,
-      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null
+      "evalIdCC": "eval1", "evalIdExamen": "eval2", "evalIdRattrapage": null,
+      "absences": 2, "absenceId": "abs1"
     }
   ]
 }
@@ -275,12 +296,17 @@ DEL  /evaluations/:id
 
 **Réponse PUT relevé :**
 ```json
-{ "sauvegardes": 4, "erreurs": 0 }
+{
+  "sauvegardes": 4,
+  "absencesSauvegardees": 2,
+  "erreurs": 0,
+  "details": []
+}
 ```
 
-> ⚠️ Rattrapage autorisé uniquement si moyenne CC+Examen < 6/20. Sinon → erreur 400.
+> ⚠️ Rattrapage autorisé uniquement si moyenne CC+Examen < 6/20. Sinon → entrée dans `details`.
 > 
-> ✅ **Recalcul automatique en cascade** : toute création, modification ou suppression d'évaluation déclenche automatiquement le recalcul de la moyenne matière → moyenne UE → résultat semestre. Aucun appel supplémentaire nécessaire côté frontend.
+> ✅ **Recalcul automatique en cascade** (notes uniquement) : moyenne matière → UE → semestre. Les absences sont persistées séparément (affichées sur les bulletins).
 
 ---
 

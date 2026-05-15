@@ -23,6 +23,20 @@ export class NoteEtudiantDto {
   @IsNumber()
   @IsOptional()
   noteRattrapage?: number;
+
+  @ApiPropertyOptional({
+    description: "Heures d'absence pour cette matière",
+    example: 2,
+  })
+  @IsNumber()
+  @IsOptional()
+  absences?: number;
+
+  /** Alias accepté si le front envoie heuresAbsence au lieu de absences */
+  @ApiPropertyOptional({ description: "Alias de absences (heures d'absence)", example: 2 })
+  @IsNumber()
+  @IsOptional()
+  heuresAbsence?: number;
 }
 
 export class SaveReleveDto {
