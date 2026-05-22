@@ -51,33 +51,39 @@ async function bootstrap() {
   );
 
   // Configuration Swagger
-  const config = new DocumentBuilder()
-    .setTitle('Bull_ASUR - API')
-    .setDescription('API de gestion des bulletins de notes LP ASUR — INPTIC.')
-    .setVersion('1.0.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Format: Bearer <votre_token_jwt>',
-      },
-      'JWT',
-    )
-    .addTag('Authentification - Étudiants', 'Connexion et gestion étudiants')
-    .addTag('Authentification - Enseignants', 'Connexion et gestion enseignants')
-    .addTag('Authentification - Administration', 'Connexion admin et secrétariat')
-    .build();
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Bull_ASUR - API')
+      .setDescription('API de gestion des bulletins de notes LP ASUR — INPTIC.')
+      .setVersion('1.0.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Format: Bearer <votre_token_jwt>',
+        },
+        'JWT',
+      )
+      .addTag('Authentification - Étudiants', 'Connexion et gestion étudiants')
+      .addTag('Authentification - Enseignants', 'Connexion et gestion enseignants')
+      .addTag('Authentification - Administration', 'Connexion admin et secrétariat')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
-  
   const port = process.env.PORT || 3002;
   await app.listen(port, '0.0.0.0');
-  console.log(`L'application est lancée sur: http://0.0.0.0:${port}`);
-  console.log(`La documentation Swagger accessible sur: http://0.0.0.0:${port}/api/docs`);
-  console.log(`Accès local: http://localhost:${port}`);
-  console.log(`Accès réseau: http://0.0.0.0:${port}`);
+  
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`L'application est lancée sur: http://0.0.0.0:${port}`);
+    console.log(`La documentation Swagger accessible sur: http://0.0.0.0:${port}/api/docs`);
+    console.log(`Accès local: http://localhost:${port}`);
+    console.log(`Accès réseau: http://0.0.0.0:${port}`);
+  } else {
+    console.log(`Application démarrée en mode production sur le port ${port}`);
+  }
 }
 bootstrap();

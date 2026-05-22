@@ -73,6 +73,9 @@ JWT_SECRET="your-super-secret-jwt-key"
 PORT=3002
 ```
 
+**Erreur `P1001` / `Can't reach database server` en local (Supabase)**  
+Le port **6543** (Transaction pooler) est souvent bloqué par un VPN ou un pare-feu. Utilisez l’URI **Session pooler** ou **Direct** (port **5432**) dans `.env` — voir les commentaires dans `.env.example`. Render peut continuer à utiliser le pooler 6543.
+
 ### **4. Initialiser Prisma**
 ```bash
 npx prisma generate
