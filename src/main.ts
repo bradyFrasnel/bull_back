@@ -14,16 +14,21 @@ async function bootstrap() {
   }));
 
   // Configuration CORS
-  const allowedOrigins = process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
-    : [
-      'http://localhost:3001',
-      'http://localhost:5173',
-      'http://localhost:5174',  // Vite dev (port alternatif)
-      'http://localhost:4173',  // Vite preview
-      'http://localhost:4174',  // Vite preview (port alternatif)
-      'https://bull-react.vercel.app'
-    ];
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:4173',
+    'http://localhost:4174',
+    'https://bull-react.vercel.app'
+  ];
+
+  const envOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/^"|"$/g, '').replace(/\/$/, ''))
+    : [];
+
+  const allowedOrigins = [...defaultOrigins, ...envOrigins];
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -33,13 +38,15 @@ async function bootstrap() {
       if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
         return callback(null, true);
       }
-      // En production : whitelist stricte
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Vérification souple (inclut l'URL complète)
+      if (allowedOrigins.some(allowed => origin === allowed || origin === allowed + '/')) {
+        return callback(null, true);
+      }
       callback(new Error(`CORS bloqué pour l'origine: ${origin}`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   });
 
   // Configuration globale de validation
@@ -79,6 +86,8 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   if (process.env.NODE_ENV !== 'production') {
+
+    console.log(`L'application est disponible à l'addresse https://bull-react.vercel.app`);
     console.log(`L'application est lancée sur: http://0.0.0.0:${port}`);
     console.log(`La documentation Swagger accessible sur: http://0.0.0.0:${port}/api/docs`);
     console.log(`Accès local: http://localhost:${port}`);
