@@ -7,9 +7,32 @@ async function bootstrap() {
   const app = await NestFactory.create(BasicAuthModule);
 
   // Configuration CORS
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+    : [
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',  // Vite dev (port alternatif)
+      'http://localhost:4173',  // Vite preview
+      'http://localhost:4174',  // Vite preview (port alternatif)
+      'https://bull-react.vercel.app'
+    ];
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Autoriser les requêtes sans origin (Postman, mobile, etc.)
+      if (!origin) return callback(null, true);
+      // En développement : autoriser tous les localhost
+      if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+      // En production : whitelist stricte
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS bloqué pour l'origine: ${origin}`));
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // Configuration globale de validation
@@ -36,7 +59,7 @@ async function bootstrap() {
     ## Authentification
     Copiez le token JWT et utilisez-le dans l'en-tête Authorization.
     `)
-    .setVersion('1.0.0')
+    .setVersion('2.2.0')
     .addBearerAuth()
     .build();
 

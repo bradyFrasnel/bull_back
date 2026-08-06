@@ -13,7 +13,7 @@ import { UserRole } from '../../common/enums/role.enum';
 @ApiTags('Authentification - Administration')
 @Controller('auth/admin')
 export class AuthAdminController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

@@ -17,12 +17,13 @@ async function bootstrap() {
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
     : [
-        'http://localhost:3001',
-        'http://localhost:5173',
-        'http://localhost:5174',  // Vite dev (port alternatif)
-        'http://localhost:4173',  // Vite preview
-        'http://localhost:4174',  // Vite preview (port alternatif)
-      ];
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',  // Vite dev (port alternatif)
+      'http://localhost:4173',  // Vite preview
+      'http://localhost:4174',  // Vite preview (port alternatif)
+      'https://bull-react.vercel.app'
+    ];
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -76,7 +77,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3002;
   await app.listen(port, '0.0.0.0');
-  
+
   if (process.env.NODE_ENV !== 'production') {
     console.log(`L'application est lancée sur: http://0.0.0.0:${port}`);
     console.log(`La documentation Swagger accessible sur: http://0.0.0.0:${port}/api/docs`);
