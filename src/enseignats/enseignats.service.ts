@@ -3,9 +3,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnseignantDto } from './dto/create-enseignats.dto';
 import * as bcrypt from 'bcrypt';
 
+// Payload accepté pour la mise à jour
+interface UpdateEnseignantPayload {
+  // Champs de la table enseignant
+  prenom?: string;
+  matricule?: string;
+  specialite?: string;
+  // Champs remontés de la table utilisateur parente
+  nom?: string;
+  email?: string;
+  password?: string;
+}
+
 @Injectable()
 export class EnseignantsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createEnseignantDto: CreateEnseignantDto) {
     // Hasher le mot de passe avant stockage
@@ -73,20 +85,32 @@ export class EnseignantsService {
     });
   }
 
-  async update(utilisateurId: string, updateEnseignantDto: any) {
-    return this.prisma.enseignant.update({
-      where: { utilisateurId },
-      data: updateEnseignantDto,
-      include: {
-        utilisateur: {
-          select: {
-            id: true,
-            email: true,
-            nom: true,
-            role: true,
-          },
+  async update(utilisateurId: string, payload: UpdateEnseignantPayload) {
+    // Séparer les champs utilisateur parent des champs propres à l'enseignant
+    const { nom, email, password, ...enseignantData } = payload;
+
+    // Vérifier que l'utilisateur existe
+    const utilisateur = await this.prisma.utilisateur.findUnique({ where: { id: utilisateurId } });
+    if (!utilisateur) throw new NotFoundException(`Enseignant avec l'ID "${utilisateurId}" non trouvé`);
+
+    // Construire la mise à jour utilisateur
+    const utilisateurUpdate: any = {};
+    if (nom) utilisateurUpdate.nom = nom;
+    if (email) utilisateurUpdate.email = email;
+    if (password) utilisateurUpdate.password = await bcrypt.hash(password, 10);
+
+    // Exécuter en transaction
+    return this.prisma.$transaction(async (tx) => {
+      if (Object.keys(utilisateurUpdate).length > 0) {
+        await tx.utilisateur.update({ where: { id: utilisateurId }, data: utilisateurUpdate });
+      }
+      return tx.enseignant.update({
+        where: { utilisateurId },
+        data: enseignantData as any,
+        include: {
+          utilisateur: { select: { id: true, email: true, nom: true, role: true } },
         },
-      },
+      });
     });
   }
 

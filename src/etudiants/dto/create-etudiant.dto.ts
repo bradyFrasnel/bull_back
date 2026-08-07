@@ -1,4 +1,4 @@
-import { IsString, IsDate, IsEmail, IsInt } from 'class-validator';
+import { IsString, IsDate, IsEmail, IsInt, IsOptional, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -43,4 +43,14 @@ export class CreateEtudiantDto {
   @ApiProperty({ description: 'Provenance / établissement d\'origine', example: 'Lycée National Léon MBA' })
   @IsString()
   provenance: string;
+
+  @ApiProperty({ description: 'ID de la classe', example: 'cuid...', required: false })
+  @IsOptional()
+  @IsString()
+  classeId?: string;
+
+  @ApiProperty({ description: 'Statut de l\'étudiant', enum: ['INSCRIT', 'REDOUBLANT', 'DIPLOME', 'ABANDONNE'], required: false })
+  @IsOptional()
+  @IsEnum(['INSCRIT', 'REDOUBLANT', 'DIPLOME', 'ABANDONNE'])
+  statut?: any;
 }

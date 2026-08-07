@@ -49,7 +49,7 @@ export class EtudiantsController {
   @ApiOperation({ summary: 'Mettre à jour un étudiant' })
   @ApiResponse({ status: 200, description: 'Étudiant mis à jour' })
   update(@Param('id') id: string, @Body() updateEtudiantDto: Partial<CreateEtudiantDto>) {
-    return this.etudiantsService.update(id, updateEtudiantDto);
+    return this.etudiantsService.update(id, updateEtudiantDto as any);
   }
 
   @Delete(':id')
