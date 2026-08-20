@@ -16,6 +16,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { PrismaService } from './prisma/prisma.service';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 async function bootstrap() {
   // Création de l'application NestJS à partir du module racine
@@ -88,6 +91,11 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new PrismaExceptionFilter());
+
+  const prismaService = app.get(PrismaService);
+  app.useGlobalInterceptors(new AuditInterceptor(prismaService));
+
   // 
   // 4. SWAGGER — Documentation API interactive
   // La documentation Swagger est uniquement disponible en mode développement.
@@ -140,3 +148,4 @@ async function bootstrap() {
 
 // Lancement de l'application
 bootstrap();
+// Trigger restart

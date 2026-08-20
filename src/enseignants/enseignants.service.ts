@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateEnseignantDto } from './dto/create-enseignats.dto';
+import { CreateEnseignantDto } from './dto/create-enseignants.dto';
 import * as bcrypt from 'bcrypt';
 
 // Payload accepté pour la mise à jour

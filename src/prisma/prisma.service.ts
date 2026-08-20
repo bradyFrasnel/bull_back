@@ -24,8 +24,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.$connect();
+        // Warm up: run a trivial query to ensure the connection pool is active
+        await this.$queryRaw`SELECT 1`;
         if (attempt > 1) {
-          this.logger.log(`Connexion base de données établie (tentative ${attempt}/${maxAttempts})`);
+          this.logger.log(`Connexion base de données établie (tentative ${attempt}/${maxAttempts}`);
+        } else {
+          this.logger.log('Connexion base de données établie');
         }
         return;
       } catch (error) {

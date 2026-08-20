@@ -65,4 +65,12 @@ export class CalculsController {
   ) {
     return this.calculsService.calculerMoyenneMatiere(etudiantId, matiereId);
   }
+
+  @Post('classe/:classeId/recalculer-tout')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
+  @ApiOperation({ summary: 'Recalculer toutes les moyennes pour tous les étudiants d\'une classe' })
+  @ApiResponse({ status: 200, description: 'Toutes les moyennes recalculées' })
+  async recalculerToutPourClasse(@Param('classeId') classeId: string) {
+    return this.calculsService.recalculerToutPourClasse(classeId);
+  }
 }

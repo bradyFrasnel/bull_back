@@ -24,57 +24,71 @@ import { LoginEtudiantDto } from './dto/login-etudiant.dto';
 import { LoginEnseignantDto } from './dto/login-enseignant.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { EtudiantsService } from '../etudiants/etudiants.service';
+import { CreateEtudiantDto } from '../etudiants/dto/create-etudiant.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private async verifyPassword(passwordEnClair: string, passwordHash: string, nom: string, userId: string): Promise<boolean> {
+    if (passwordHash.startsWith('$import$')) {
+      const sel = 'bull_asur_import_2026';
+      const expectedHash = '$import$' + crypto
+        .createHash('sha256')
+        .update(`${passwordEnClair}_${nom.toLowerCase()}_${sel}`)
+        .digest('hex')
+        .substring(0, 40);
+        
+      if (passwordHash === expectedHash) {
+        const newHash = await bcrypt.hash(passwordEnClair, 10);
+        await this.prisma.utilisateur.update({
+          where: { id: userId },
+          data: { password: newHash }
+        });
+        return true;
+      }
+      return false;
+    }
+    return bcrypt.compare(passwordEnClair, passwordHash);
+  }
   constructor(
     private prisma: PrismaService,   // Service Prisma pour accéder à la BDD
     private jwtService: JwtService,  // Service JWT pour signer les tokens
+    private etudiantsService: EtudiantsService,
+    private mailService: MailService,
   ) {}
 
-  // ──────────────────────────────────────────────────────────
-  // LOGIN ÉTUDIANT
-  // ──────────────────────────────────────────────────────────
-  /**
-   * Authentifie un étudiant par son nom d'utilisateur et son mot de passe.
-   *
-   * Flux :
-   * 1. Recherche l'utilisateur par nom (unique) avec inclusion du profil étudiant
-   * 2. Vérifie que le rôle est bien ETUDIANT
-   * 3. Compare le mot de passe avec le hash bcrypt stocké
-   * 4. Génère un JWT avec { sub: userId, email, role, type }
-   * 5. Retourne le token + les infos de l'étudiant
-   *
-   * @param loginDto - { nom, password }
-   * @returns { access_token, etudiant: { id, nom, prenom, email, role } }
-   * @throws UnauthorizedException si identifiants invalides
-   */
-  async loginEtudiant(loginDto: LoginEtudiantDto) {
-    // Recherche de l'utilisateur par son nom unique, avec le profil étudiant associé
+  private async authenticateUser(nom: string, passwordEnClair: string, allowedRoles: string[], includeRelations: any = {}) {
     const user = await this.prisma.utilisateur.findUnique({
-      where: { nom: loginDto.nom },
-      include: { etudiant: true }
+      where: { nom },
+      include: includeRelations
     });
 
-    // Vérification : l'utilisateur existe et a bien le rôle ETUDIANT
-    if (!user || user.role !== 'ETUDIANT') {
+    if (!user || !allowedRoles.includes(user.role)) {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    // Comparaison du mot de passe en clair avec le hash bcrypt
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    const isPasswordValid = await this.verifyPassword(passwordEnClair, user.password, user.nom, user.id);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    // Création du payload JWT (sub = subject = ID de l'utilisateur)
+    return user;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // LOGIN ÉTUDIANT
+  // ──────────────────────────────────────────────────────────
+  async loginEtudiant(loginDto: LoginEtudiantDto) {
+    const user = await this.authenticateUser(loginDto.nom, loginDto.password, ['ETUDIANT'], { etudiant: true });
     const payload = { sub: user.id, email: user.email, role: user.role, type: 'etudiant' };
     return {
       access_token: this.jwtService.sign(payload),
       etudiant: {
         id: user.id,
         nom: user.nom,
-        prenom: user.etudiant?.prenom,
+        prenom: (user as any).etudiant?.prenom,
         email: user.email,
         role: user.role
       }
@@ -84,36 +98,15 @@ export class AuthService {
   // ──────────────────────────────────────────────────────────
   // LOGIN ENSEIGNANT
   // ──────────────────────────────────────────────────────────
-  /**
-   * Authentifie un enseignant par son nom d'utilisateur et son mot de passe.
-   * Même logique que loginEtudiant mais vérifie le rôle ENSEIGNANT.
-   *
-   * @param loginDto - { nom, password }
-   * @returns { access_token, enseignant: { id, nom, prenom, email, role } }
-   * @throws UnauthorizedException si identifiants invalides
-   */
   async loginEnseignant(loginDto: LoginEnseignantDto) {
-    const user = await this.prisma.utilisateur.findUnique({
-      where: { nom: loginDto.nom },
-      include: { enseignant: true }
-    });
-
-    if (!user || user.role !== 'ENSEIGNANT') {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
+    const user = await this.authenticateUser(loginDto.nom, loginDto.password, ['ENSEIGNANT'], { enseignant: true });
     const payload = { sub: user.id, email: user.email, role: user.role, type: 'enseignant' };
     return {
       access_token: this.jwtService.sign(payload),
       enseignant: {
         id: user.id,
         nom: user.nom,
-        prenom: user.enseignant?.prenom,
+        prenom: (user as any).enseignant?.prenom,
         email: user.email,
         role: user.role
       }
@@ -123,31 +116,8 @@ export class AuthService {
   // ──────────────────────────────────────────────────────────
   // LOGIN ADMINISTRATEUR
   // ──────────────────────────────────────────────────────────
-  /**
-   * Authentifie un administrateur par son nom et mot de passe.
-   * Accepte les rôles ADMINISTRATEUR et SECRETARIAT (connexion admin unifiée).
-   * Retourne toujours la clé "admin" dans la réponse, quel que soit le rôle.
-   *
-   * @param loginDto - { nom, password }
-   * @returns { access_token, admin: { id, nom, email, role } }
-   * @throws UnauthorizedException si identifiants invalides
-   */
   async loginAdmin(loginDto: LoginAdminDto) {
-    const user = await this.prisma.utilisateur.findUnique({
-      where: { nom: loginDto.nom }
-    });
-
-    // Accepte ADMINISTRATEUR ou SECRETARIAT pour la connexion admin
-    if (!user || (user.role !== 'ADMINISTRATEUR' && user.role !== 'SECRETARIAT')) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
-    // Le type dans le payload correspond au rôle en minuscules
+    const user = await this.authenticateUser(loginDto.nom, loginDto.password, ['ADMINISTRATEUR', 'SECRETARIAT']);
     const payload = { sub: user.id, email: user.email, role: user.role, type: user.role.toLowerCase() };
     return {
       access_token: this.jwtService.sign(payload),
@@ -175,36 +145,26 @@ export class AuthService {
    * @param createEtudiantDto - { nom, password, email, prenom, matricule, date_naissance, ... }
    * @returns Le profil Etudiant créé
    */
-  async createEtudiant(createEtudiantDto: any) {
-    // Hashage du mot de passe — 10 rounds de bcrypt pour un bon compromis sécurité/performance
-    const hashedPassword = await bcrypt.hash(createEtudiantDto.password, 10);
+  async createEtudiant(createEtudiantDto: CreateEtudiantDto) {
+    const etudiant = await this.etudiantsService.create(createEtudiantDto);
     
-    // Création de l'utilisateur dans la table mère
-    const utilisateur = await this.prisma.utilisateur.create({
-      data: {
-        nom: createEtudiantDto.nom,
-        password: hashedPassword,
-        email: createEtudiantDto.email,
-        role: 'ETUDIANT',
-      },
-    });
-
-    // Création du profil étudiant lié via l'utilisateurId
-    return this.prisma.etudiant.create({
-      data: {
-        utilisateurId: utilisateur.id,
-        prenom: createEtudiantDto.prenom,
-        matricule: createEtudiantDto.matricule,
-        date_naissance: typeof createEtudiantDto.date_naissance === 'string'
-          ? new Date(createEtudiantDto.date_naissance).toISOString()
-          : createEtudiantDto.date_naissance,
-        lieu_naissance: createEtudiantDto.lieu_naissance,
-        bac_type: createEtudiantDto.bac_type,
-        annee_bac: createEtudiantDto.annee_bac,
-        provenance: createEtudiantDto.provenance,
-        classeId: createEtudiantDto.classeId || null,
-      } as any,
-    });
+    // Le mot de passe par défaut est défini dans EtudiantsService ('pass1234') s'il n'est pas fourni.
+    const password = createEtudiantDto.password || 'pass1234';
+    
+    // On envoie l'email avec le mot de passe en clair (seulement à la création)
+    const emailToUse = createEtudiantDto.email || etudiant.utilisateur?.email;
+    if (emailToUse) {
+      await this.mailService.sendCredentials(
+        emailToUse,
+        etudiant.utilisateur?.nom || createEtudiantDto.nom,
+        etudiant.prenom,
+        password,
+        'Étudiant'
+      );
+    }
+    
+    // On retourne l'étudiant avec le mot de passe généré pour l'afficher sur le frontend
+    return { ...etudiant, generatedPassword: password };
   }
 
   /**
@@ -226,14 +186,30 @@ export class AuthService {
       },
     });
 
-    return this.prisma.enseignant.create({
+    const enseignant = await this.prisma.enseignant.create({
       data: {
         utilisateurId: utilisateur.id,
         prenom: createEnseignantDto.prenom,
         matricule: createEnseignantDto.matricule,
         specialite: createEnseignantDto.specialite,
       },
+      include: {
+        utilisateur: true
+      }
     });
+
+    if (createEnseignantDto.email) {
+      await this.mailService.sendCredentials(
+        createEnseignantDto.email,
+        createEnseignantDto.nom,
+        createEnseignantDto.prenom,
+        createEnseignantDto.password,
+        'Enseignant'
+      );
+    }
+
+    // On retourne l'enseignant avec le mot de passe pour l'afficher sur le frontend
+    return { ...enseignant, generatedPassword: createEnseignantDto.password };
   }
 
   /**
@@ -298,33 +274,16 @@ export class AuthService {
    * @throws UnauthorizedException si identifiants invalides
    */
   async loginSecretariat(loginDto: any) {
-    // Recherche de l'utilisateur par nom
-    const user = await this.prisma.utilisateur.findUnique({
-      where: { nom: loginDto.nom },
-    });
+    const user = await this.authenticateUser(loginDto.nom, loginDto.password, ['SECRETARIAT']);
 
-    // Vérification : l'utilisateur existe et a bien le rôle SECRETARIAT
-    if (!user || user.role !== 'SECRETARIAT') {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
-    // Vérification du mot de passe
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Identifiants invalides');
-    }
-
-    // Tentative de récupération du profil secrétariat (peut ne pas exister)
     let secretariatProfile = null;
     try {
       secretariatProfile = await this.prisma.secretariat.findUnique({
         where: { utilisateurId: user.id },
       });
     } catch (error) {
-      // Le profil secrétariat n'existe pas encore — ce n'est pas bloquant
     }
 
-    // Génération du JWT et renvoi des informations
     const payload = { sub: user.id, email: user.email, role: user.role, type: 'secretariat' };
     return {
       access_token: this.jwtService.sign(payload),

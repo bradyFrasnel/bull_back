@@ -1,7 +1,16 @@
 import { IsString, IsDate, IsEmail, IsInt, IsOptional, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+/**
+ * Création d'un étudiant.
+ *
+ * Champs obligatoires (alignés sur le modèle Excel DAR_A) :
+ *   nom, prenom, date_naissance
+ *
+ * Champs facultatifs à la création (complétables via PUT /etudiants/:id) :
+ *   email, password, matricule, lieu_naissance, bac_type, annee_bac, provenance, classeId, statut
+ */
 export class CreateEtudiantDto {
   @ApiProperty({ description: 'Nom de famille', example: 'Moukoma' })
   @IsString()
@@ -11,45 +20,52 @@ export class CreateEtudiantDto {
   @IsString()
   prenom: string;
 
-  @ApiProperty({ description: 'Matricule unique', example: '2024ASUR001' })
+  @ApiPropertyOptional({ description: 'Matricule unique (auto-généré si absent)', example: '2024ASUR001' })
+  @IsOptional()
   @IsString()
-  matricule: string;
+  matricule?: string;
 
-  @ApiProperty({ description: 'Email', example: 'brady.moukoma@asur.fr' })
+  @ApiPropertyOptional({ description: 'Email (auto-généré si absent)', example: 'brady.moukoma@asur.fr' })
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
-  @ApiProperty({ description: 'Mot de passe (minimum 6 caractères)', example: 'password123' })
+  @ApiPropertyOptional({ description: 'Mot de passe (défaut: pass1234)', example: 'password123' })
+  @IsOptional()
   @IsString()
-  password: string;
+  password?: string;
 
   @ApiProperty({ description: 'Date de naissance', example: '2000-05-15' })
   @IsDate()
   @Type(() => Date)
   date_naissance: Date;
 
-  @ApiProperty({ description: 'Lieu de naissance', example: 'Libreville' })
+  @ApiPropertyOptional({ description: 'Lieu de naissance (extrait du champ Excel combiné)', example: 'Libreville' })
+  @IsOptional()
   @IsString()
-  lieu_naissance: string;
+  lieu_naissance?: string;
 
-  @ApiProperty({ description: 'Type de bac', example: 'C' })
+  @ApiPropertyOptional({ description: 'Type de bac (complétable ultérieurement)', example: 'C' })
+  @IsOptional()
   @IsString()
-  bac_type: string;
+  bac_type?: string;
 
-  @ApiProperty({ description: 'Année du bac', example: 2022 })
+  @ApiPropertyOptional({ description: 'Année du bac (complétable ultérieurement)', example: 2022 })
+  @IsOptional()
   @IsInt()
-  annee_bac: number;
+  annee_bac?: number;
 
-  @ApiProperty({ description: 'Provenance / établissement d\'origine', example: 'Lycée National Léon MBA' })
+  @ApiPropertyOptional({ description: 'Provenance / établissement d\'origine', example: 'Lycée National Léon MBA' })
+  @IsOptional()
   @IsString()
-  provenance: string;
+  provenance?: string;
 
-  @ApiProperty({ description: 'ID de la classe', example: 'cuid...', required: false })
+  @ApiPropertyOptional({ description: 'ID de la classe', example: 'cuid...' })
   @IsOptional()
   @IsString()
   classeId?: string;
 
-  @ApiProperty({ description: 'Statut de l\'étudiant', enum: ['INSCRIT', 'REDOUBLANT', 'DIPLOME', 'ABANDONNE'], required: false })
+  @ApiPropertyOptional({ description: 'Statut de l\'étudiant', enum: ['INSCRIT', 'REDOUBLANT', 'DIPLOME', 'ABANDONNE'] })
   @IsOptional()
   @IsEnum(['INSCRIT', 'REDOUBLANT', 'DIPLOME', 'ABANDONNE'])
   statut?: any;

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { BulletinsController } from './bulletins.controller';
 import { BulletinsService } from './bulletins.service';
+import { BulletinPdfService } from './bulletin-pdf.service';
 import { CalculsModule } from '../calculs/calculs.module';
 
 @Module({
   imports: [CalculsModule],
   controllers: [BulletinsController],
-  providers: [BulletinsService],
+  providers: [BulletinsService, BulletinPdfService],
   exports: [BulletinsService],
 })
 export class BulletinsModule {}

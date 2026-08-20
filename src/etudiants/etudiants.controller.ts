@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { EtudiantsService } from './etudiants.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
@@ -24,10 +24,15 @@ export class EtudiantsController {
 
   @Get()
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
-  @ApiOperation({ summary: 'Lister tous les étudiants' })
+  @ApiOperation({ summary: 'Lister tous les étudiants avec pagination' })
   @ApiResponse({ status: 200, description: 'Liste des étudiants' })
-  findAll() {
-    return this.etudiantsService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    return this.etudiantsService.findAll(pageNum, limitNum);
   }
 
   @Get(':id')

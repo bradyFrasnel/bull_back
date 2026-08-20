@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
 import * as bcrypt from 'bcrypt';
@@ -26,51 +26,171 @@ interface UpdateEtudiantPayload {
 export class EtudiantsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createEtudiantDto: CreateEtudiantDto) {
-    // Hasher le mot de passe avant stockage
-    const hashedPassword = await bcrypt.hash(createEtudiantDto.password, 10);
+  /** Valeurs par défaut pour les champs facultatifs non fournis à l'inscription. */
+  private static readonly DEFAULT_PASSWORD = 'pass1234';
+  private static readonly DEFAULT_LIEU = '-';
+  private static readonly DEFAULT_BAC_TYPE = '';
+  private static readonly DEFAULT_PROVENANCE = '';
 
-    // Créer d'abord l'utilisateur avec le rôle ETUDIANT
-    const utilisateur = await this.prisma.utilisateur.create({
-      data: {
-        nom: createEtudiantDto.nom,
-        password: hashedPassword,
-        email: createEtudiantDto.email,
-        role: 'ETUDIANT',
-      },
+  private generateMatricule(nom: string): string {
+    const year = new Date().getFullYear();
+    const cleanNom = nom.replace(/[^A-Z]/gi, '').toUpperCase().slice(0, 4) || 'ETU';
+    const suffix = Math.floor(Math.random() * 900) + 100;
+    return `${year}${cleanNom}${suffix}`;
+  }
+
+  private generateEmail(nom: string, prenom: string): string {
+    const cleanNom = nom.toLowerCase().replace(/[^a-z0-9]/g, '') || 'etudiant';
+    const cleanPrenom = prenom.toLowerCase().replace(/[^a-z0-9]/g, '') || 'inconnu';
+    const suffix = Date.now().toString().slice(-6);
+    return `${cleanNom}.${cleanPrenom}.${suffix}@inptic.ga`;
+  }
+
+  private normalizeCreateDto(dto: CreateEtudiantDto): Required<
+    Pick<CreateEtudiantDto, 'nom' | 'prenom' | 'date_naissance'>
+  > & {
+    matricule: string;
+    email: string;
+    password: string;
+    lieu_naissance: string;
+    bac_type: string;
+    annee_bac: number;
+    provenance: string;
+    classeId: string | null;
+    statut: any;
+  } {
+    const nom = dto.nom?.trim();
+    const prenom = dto.prenom?.trim();
+
+    if (!nom) throw new BadRequestException('Le nom est obligatoire.');
+    if (!prenom) throw new BadRequestException('Le prénom est obligatoire.');
+    if (!dto.date_naissance) throw new BadRequestException('La date de naissance est obligatoire.');
+
+    const parsedDate = new Date(dto.date_naissance);
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('La date de naissance est invalide.');
+    }
+
+    return {
+      nom,
+      prenom,
+      date_naissance: dto.date_naissance,
+      matricule: dto.matricule?.trim() || this.generateMatricule(nom),
+      email: dto.email?.trim() || this.generateEmail(nom, prenom),
+      password: dto.password || EtudiantsService.DEFAULT_PASSWORD,
+      lieu_naissance: dto.lieu_naissance?.trim() || EtudiantsService.DEFAULT_LIEU,
+      bac_type: dto.bac_type?.trim() || EtudiantsService.DEFAULT_BAC_TYPE,
+      annee_bac: dto.annee_bac ?? 0,
+      provenance: dto.provenance?.trim() || EtudiantsService.DEFAULT_PROVENANCE,
+      classeId: dto.classeId || null,
+      statut: dto.statut || 'INSCRIT',
+    };
+  }
+
+  async create(createEtudiantDto: CreateEtudiantDto) {
+    const normalized = this.normalizeCreateDto(createEtudiantDto);
+
+    // 1. Vérifier si un utilisateur existe déjà avec cet email
+    const existingUser = await this.prisma.utilisateur.findUnique({
+      where: { email: normalized.email },
     });
 
-    // Puis créer l'étudiant avec l'ID de l'utilisateur
+    // 2. Vérifier si un étudiant existe déjà avec ce matricule
+    const existingEtudiant = await this.prisma.etudiant.findUnique({
+      where: { matricule: normalized.matricule },
+    });
+
+    let utilisateurId: string;
+
+    if (existingUser) {
+      utilisateurId = existingUser.id;
+    } else {
+      const hashedPassword = await bcrypt.hash(normalized.password, 10);
+      const utilisateur = await this.prisma.utilisateur.create({
+        data: {
+          nom: normalized.nom,
+          password: hashedPassword,
+          email: normalized.email,
+          role: 'ETUDIANT',
+        },
+      });
+      utilisateurId = utilisateur.id;
+    }
+
+    const dateNaiss = new Date(normalized.date_naissance);
+
+    if (existingEtudiant) {
+      // Mettre à jour l'étudiant existant s'il existe déjà
+      return this.prisma.etudiant.update({
+        where: { matricule: normalized.matricule },
+        data: {
+          prenom: normalized.prenom,
+          date_naissance: dateNaiss,
+          lieu_naissance: normalized.lieu_naissance,
+          bac_type: normalized.bac_type,
+          annee_bac: normalized.annee_bac,
+          provenance: normalized.provenance,
+          classeId: normalized.classeId,
+          statut: normalized.statut,
+        },
+        include: {
+          utilisateur: {
+            select: { id: true, email: true, nom: true, role: true },
+          },
+          classe: { select: { id: true, nom: true, code: true } },
+        },
+      });
+    }
+
+    // Créer un nouvel étudiant
     return this.prisma.etudiant.create({
       data: {
-        utilisateurId: utilisateur.id,
-        prenom: createEtudiantDto.prenom,
-        matricule: createEtudiantDto.matricule,
-        date_naissance: typeof createEtudiantDto.date_naissance === 'string'
-          ? new Date(createEtudiantDto.date_naissance).toISOString()
-          : createEtudiantDto.date_naissance,
-        lieu_naissance: createEtudiantDto.lieu_naissance,
-        bac_type: createEtudiantDto.bac_type,
-        annee_bac: createEtudiantDto.annee_bac,
-        provenance: createEtudiantDto.provenance,
-        classeId: createEtudiantDto.classeId,
-        statut: createEtudiantDto.statut,
-      } as any,
+        utilisateurId: utilisateurId,
+        prenom: normalized.prenom,
+        matricule: normalized.matricule,
+        date_naissance: dateNaiss,
+        lieu_naissance: normalized.lieu_naissance,
+        bac_type: normalized.bac_type,
+        annee_bac: normalized.annee_bac,
+        provenance: normalized.provenance,
+        classeId: normalized.classeId,
+        statut: normalized.statut,
+      },
       include: {
         utilisateur: {
-          select: {
-            id: true,
-            email: true,
-            nom: true,
-            role: true,
-          },
+          select: { id: true, email: true, nom: true, role: true },
         },
         classe: { select: { id: true, nom: true, code: true } },
       },
     });
   }
 
-  async findAll() {
+  async findAll(page?: number, limit?: number) {
+    if (page !== undefined && limit !== undefined) {
+      const skip = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        this.prisma.etudiant.findMany({
+          skip,
+          take: limit,
+          include: {
+            utilisateur: {
+              select: { id: true, email: true, nom: true, role: true },
+            },
+            classe: { select: { id: true, nom: true, code: true } },
+          },
+        }),
+        this.prisma.etudiant.count(),
+      ]);
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
+    // Comportement par défaut (rétrocompatibilité)
     return this.prisma.etudiant.findMany({
       include: {
         utilisateur: {

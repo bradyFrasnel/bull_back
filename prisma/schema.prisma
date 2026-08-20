@@ -1,21 +1,6 @@
 // ============================================================
 // Schéma Prisma — Base de données Bull ASUR
 // ============================================================
-//
-// Ce fichier définit le modèle de données complet de l'application :
-// - Utilisateurs avec héritage polymorphique (Admin, Secrétariat, Enseignant, Étudiant)
-// - Référentiel académique (Semestres → UE → Matières)
-// - Classes / Promotions scolaires
-// - Évaluations (CC, Examen, Rattrapage) et Absences
-// - Résultats calculés (MoyenneMatière, MoyenneUE, ResultatSemestre, ResultatAnnuel)
-// - Annonces
-// - Configuration système paramétrable
-//
-// Documentation Prisma : https://pris.ly/d/prisma-schema
-
-// ──────────────────────────────────────────────────────────
-// CONFIGURATION DU GÉNÉRATEUR ET DE LA SOURCE DE DONNÉES
-// ──────────────────────────────────────────────────────────
 
 generator client {
   provider = "prisma-client-js"
@@ -24,15 +9,13 @@ generator client {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  // directUrl est activé pour les migrations Prisma (décommenter si le port 5432 est accessible)
-  // directUrl  = env("DIRECT_URL")
+  directUrl  = env("DIRECT_URL")
 }
 
 // ──────────────────────────────────────────────────────────
-// ENUMS — Types énumérés partagés
+// ENUMS
 // ──────────────────────────────────────────────────────────
 
-// Rôles utilisateur
 enum Role {
   ADMINISTRATEUR
   SECRETARIAT
@@ -40,92 +23,100 @@ enum Role {
   ETUDIANT
 }
 
-// Statut d'un étudiant dans son cursus
 enum StatutEtudiant {
-  INSCRIT      // Inscrit en cours d'année (par défaut)
-  REDOUBLANT   // Redouble l'année en cours
-  DIPLOME      // A obtenu son diplôme
-  ABANDONNE    // A abandonné le cursus
+  INSCRIT
+  REDOUBLANT
+  DIPLOME
+  ABANDONNE
+}
+
+enum TypeEvaluation {
+  CC
+  EXAMEN
+  RATTRAPAGE
+}
+
+enum DecisionJury {
+  DIPLOME
+  REPRISE_SOUTENANCE
+  REDOUBLE
+  ADMISSIBLE_S6
+}
+
+enum Mention {
+  PASSABLE
+  ASSEZ_BIEN
+  BIEN
+  TRES_BIEN
 }
 
 // ──────────────────────────────────────────────────────────
-// FILIERES — Groupement de classes par domaine d'étude
+// FILIERES
 // ──────────────────────────────────────────────────────────
 
 model Filiere {
-  id          String   @id @default(cuid())
-  nom         String   @unique
-  code        String   @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  nom       String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  classes     Classe[]
+  classes Classe[]
 
   @@map("filieres")
 }
 
 // ──────────────────────────────────────────────────────────
-// CLASSES — Promotions scolaires
+// CLASSES
 // ──────────────────────────────────────────────────────────
-//
-// Une classe regroupe des étudiants pour une année universitaire.
-// Exemples : "LP ASUR 2025-2026", "GI 1A 2025-2026"
-//
-// Relation avec Semestre : many-to-many via SemestreClasse
-// (Ex: GI 1A et GI 1B partagent le même S1)
 
 model Classe {
   id                 String   @id @default(cuid())
-  nom                String                        // Ex: "LP ASUR 2025"
-  code               String   @unique              // Ex: "ASUR-2025" — identifiant unique
-  anneeUniversitaire String                        // Ex: "2025-2026"
-  capaciteMax        Int?                          // Capacité maximale (optionnel)
+  nom                String
+  code               String   @unique
+  anneeUniversitaire String
+  capaciteMax        Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  // Relations
-  filiereId          String?
-  filiere            Filiere?                      @relation(fields: [filiereId], references: [id], onDelete: SetNull)
-  etudiants          Etudiant[]                    // Étudiants inscrits dans cette classe
-  semestres          SemestreClasse[]              // Semestres assignés à cette classe (N:M)
+  filiereId String?
+  filiere   Filiere? @relation(fields: [filiereId], references: [id], onDelete: SetNull)
+
+  etudiants Etudiant[]
+  semestres SemestreClasse[]
 
   @@map("classes")
 }
 
-// Table de liaison Semestre ↔ Classe (many-to-many)
-// Un semestre peut appartenir à plusieurs classes (GI 1A et GI 1B partagent S1)
-// Une classe peut avoir plusieurs semestres (S5 et S6)
 model SemestreClasse {
   semestreId String
   classeId   String
 
-  semestre   Semestre @relation(fields: [semestreId], references: [id], onDelete: Cascade)
-  classe     Classe   @relation(fields: [classeId], references: [id], onDelete: Cascade)
+  semestre Semestre @relation(fields: [semestreId], references: [id], onDelete: Cascade)
+  classe   Classe   @relation(fields: [classeId], references: [id], onDelete: Cascade)
 
   @@id([semestreId, classeId])
   @@map("semestre_classes")
 }
 
 // ──────────────────────────────────────────────────────────
-// UTILISATEURS — Héritage polymorphique (Table-per-Type)
+// UTILISATEURS
 // ──────────────────────────────────────────────────────────
 
 model Utilisateur {
   id        String   @id @default(cuid())
   nom       String   @unique
-  password  String   @unique
+  password  String
   email     String   @unique
   role      Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations polymorphiques 1:1
   admin       Admin?
   secretariat Secretariat?
   enseignant  Enseignant?
   etudiant    Etudiant?
 
-  // Relations métier
   evaluations        Evaluation[]
   absences           Absence[]
   moyenneMatieres    MoyenneMatiere[]
@@ -133,12 +124,13 @@ model Utilisateur {
   resultatSemestres  ResultatSemestre[]
   resultatAnnuel     ResultatAnnuel?
   matieresEnseignees MatiereEnseignant[]
+  archivesBulletins  ArchiveBulletin[]
 
   @@map("utilisateurs")
 }
 
 // ──────────────────────────────────────────────────────────
-// TABLES FILLES — Profils spécifiques par rôle
+// PROFILS PAR RÔLE
 // ──────────────────────────────────────────────────────────
 
 model Admin {
@@ -155,27 +147,24 @@ model Secretariat {
   @@map("secretariats")
 }
 
-// Profil étudiant — informations personnelles et scolaires
 model Etudiant {
   utilisateurId  String         @id
   utilisateur    Utilisateur    @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  prenom         String                         // Prénom de l'étudiant
-  matricule      String         @unique          // Numéro matricule unique
-  date_naissance DateTime                        // Date de naissance
-  lieu_naissance String                          // Lieu de naissance
-  bac_type       String                          // Type de baccalauréat obtenu
-  annee_bac      Int                             // Année d'obtention du bac
-  provenance     String                          // Établissement d'origine
-  statut         StatutEtudiant @default(INSCRIT) // Statut dans le cursus
+  prenom         String
+  matricule      String         @unique
+  date_naissance DateTime
+  lieu_naissance String
+  bac_type       String
+  annee_bac      Int
+  provenance     String
+  statut         StatutEtudiant @default(INSCRIT)
 
-  // Lien vers la classe (optionnel pour permettre les migrations sans casser les données)
-  classeId       String?
-  classe         Classe?        @relation(fields: [classeId], references: [id], onDelete: SetNull)
+  classeId String?
+  classe   Classe? @relation(fields: [classeId], references: [id], onDelete: SetNull)
 
   @@map("etudiants")
 }
 
-// Profil enseignant
 model Enseignant {
   utilisateurId String      @id
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
@@ -187,33 +176,34 @@ model Enseignant {
 }
 
 // ──────────────────────────────────────────────────────────
-// RÉFÉRENTIEL ACADÉMIQUE — Structure hiérarchique
+// RÉFÉRENTIEL ACADÉMIQUE
 // ──────────────────────────────────────────────────────────
-// Hiérarchie : Semestre → Unité d'Enseignement (UE) → Matière
 
 model Semestre {
-  id                 String   @id @default(cuid())
-  code               String   @unique
+  id                 String @id @default(cuid())
+  code               String @unique
   libelle            String
   anneeUniversitaire String
 
-  // Relations
   ues               UniteEnseignement[]
   resultatSemestres ResultatSemestre[]
-  classes           SemestreClasse[]   // Classes qui suivent ce semestre (N:M)
+  classes           SemestreClasse[]
+  archivesBulletins ArchiveBulletin[]
 
   @@map("semestres")
 }
 
 model UniteEnseignement {
-  id         String   @id @default(cuid())
-  code       String   @unique
-  libelle    String
-  semestreId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  code        String   @unique
+  libelle     String
+  semestreId  String
+  credits     Int?
+  coefficient Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  semestre   Semestre  @relation(fields: [semestreId], references: [id], onDelete: Cascade)
+  semestre   Semestre    @relation(fields: [semestreId], references: [id], onDelete: Cascade)
   matieres   Matiere[]
   moyenneUEs MoyenneUE[]
 
@@ -239,7 +229,7 @@ model Matiere {
 }
 
 // ──────────────────────────────────────────────────────────
-// ÉVALUATIONS — Saisie des notes
+// ÉVALUATIONS
 // ──────────────────────────────────────────────────────────
 
 model Evaluation {
@@ -258,14 +248,8 @@ model Evaluation {
   @@map("evaluations")
 }
 
-enum TypeEvaluation {
-  CC
-  EXAMEN
-  RATTRAPAGE
-}
-
 // ──────────────────────────────────────────────────────────
-// ABSENCES — Suivi des heures d'absence par matière
+// ABSENCES
 // ──────────────────────────────────────────────────────────
 
 model Absence {
@@ -284,7 +268,7 @@ model Absence {
 }
 
 // ──────────────────────────────────────────────────────────
-// RÉSULTATS CALCULÉS — Moyennes et validations
+// RÉSULTATS CALCULÉS
 // ──────────────────────────────────────────────────────────
 
 model MoyenneMatiere {
@@ -292,6 +276,8 @@ model MoyenneMatiere {
   utilisateurId     String
   matiereId         String
   moyenne           Float
+  rang              Int?
+  appreciation      String?
   rattrapageUtilise Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -308,6 +294,8 @@ model MoyenneUE {
   utilisateurId       String
   uniteEnseignementId String
   moyenne             Float
+  rang                Int?
+  appreciation        String?
   creditsAcquis       Int
   compense            Boolean  @default(false)
   createdAt           DateTime @default(now())
@@ -325,6 +313,8 @@ model ResultatSemestre {
   utilisateurId   String
   semestreId      String
   moyenneSemestre Float
+  rang            Int?
+  appreciation    String?
   creditsTotal    Int
   creditsAcquis   Int      @default(0)
   valide          Boolean
@@ -343,32 +333,16 @@ model ResultatAnnuel {
   utilisateurId   String        @unique
   annee           String
   moyenneAnnuelle Float?
+  rang            Int?
   decisionJury    DecisionJury?
   mention         Mention?
+  appreciation    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
   @@map("resultat_annuels")
-}
-
-// ──────────────────────────────────────────────────────────
-// ENUMS — Décisions et mentions
-// ──────────────────────────────────────────────────────────
-
-enum DecisionJury {
-  DIPLOME            // 60 crédits acquis — diplôme obtenu
-  REPRISE_SOUTENANCE // Tous crédits sauf UE6-2 (soutenance)
-  REDOUBLE           // Crédits insuffisants — redouble la L3 (corrigé : REDOUBLANCE → REDOUBLE)
-  ADMISSIBLE_S6      // En attente de soutenance S6
-}
-
-enum Mention {
-  PASSABLE    // 10 ≤ moyenne < 12
-  ASSEZ_BIEN  // 12 ≤ moyenne < 14
-  BIEN        // 14 ≤ moyenne < 16
-  TRES_BIEN   // moyenne ≥ 16
 }
 
 // ──────────────────────────────────────────────────────────
@@ -389,18 +363,14 @@ model MatiereEnseignant {
 }
 
 // ──────────────────────────────────────────────────────────
-// ANNONCES — Tableau d'affichage
+// ANNONCES
 // ──────────────────────────────────────────────────────────
-//
-// Permet d'afficher des messages ciblés sur les tableaux de bord.
-// cible = null → visible par tous les rôles.
-// cible = ETUDIANT → uniquement visible par les étudiants, etc.
 
 model Annonce {
   id        String   @id @default(cuid())
   titre     String
   contenu   String
-  cible     Role?    // Null = visible par tous, sinon ciblé par rôle
+  cible     Role?
   actif     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -409,7 +379,7 @@ model Annonce {
 }
 
 // ──────────────────────────────────────────────────────────
-// CONFIGURATION SYSTÈME — Paramètres clé-valeur
+// CONFIGURATION SYSTÈME
 // ──────────────────────────────────────────────────────────
 
 model Configuration {
@@ -421,3 +391,42 @@ model Configuration {
 
   @@map("configurations")
 }
+
+// ──────────────────────────────────────────────────────────
+// ARCHIVE DES BULLETINS
+// ──────────────────────────────────────────────────────────
+
+model ArchiveBulletin {
+  id              String   @id @default(cuid())
+  utilisateurId   String
+  semestreId      String?
+  type            String   // "semestre" ou "annuel"
+  donneesJson     Json     // Contient la snapshot des données du bulletin généré
+  dateGeneration  DateTime @default(now())
+
+  utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  semestre        Semestre?   @relation(fields: [semestreId], references: [id], onDelete: SetNull)
+
+  @@map("archive_bulletins")
+}
+
+// ──────────────────────────────────────────────────────────
+// JOURNAL D'AUDIT
+// ──────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // "CREATE", "UPDATE", "DELETE", "LOGIN", "EXPORT", etc.
+  entity      String   // "Etudiant", "Enseignant", "Note", "Bulletin", etc.
+  entityId    String?
+  details     Json?    // Détails supplémentaires (ex: anciennes/nouvelles valeurs)
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+

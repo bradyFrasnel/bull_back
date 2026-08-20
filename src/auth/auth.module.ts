@@ -8,7 +8,7 @@ import { AuthAdminController } from './controllers/auth-admin.controller';
 import { AuthSecretariatController } from './controllers/auth-secretariat.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { EnseignantsModule } from '../enseignats/enseignats.module';
+import { EnseignantsModule } from '../enseignants/enseignants.module';
 import { EtudiantsModule } from '../etudiants/etudiants.module';
 
 @Module({

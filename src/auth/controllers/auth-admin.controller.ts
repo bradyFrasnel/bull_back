@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nes
 import { AuthService } from '../auth.service';
 import { LoginAdminDto } from '../dto/login-admin.dto';
 import { RegisterAdminDto } from '../dto/register-admin.dto';
-import { CreateEnseignantDto } from '../../enseignats/dto/create-enseignats.dto';
+import { CreateEnseignantDto } from '../../enseignants/dto/create-enseignants.dto';
 import { CreateEtudiantDto } from '../../etudiants/dto/create-etudiant.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';

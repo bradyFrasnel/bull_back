@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CalculsService } from '../calculs/calculs.service';
+import { BulletinPdfService } from './bulletin-pdf.service';
 
 @Injectable()
 export class BulletinsService {
   constructor(
     private prisma: PrismaService,
     private calculsService: CalculsService,
+    private pdfService: BulletinPdfService,
   ) {}
 
   // ─────────────────────────────────────────────
@@ -116,6 +118,7 @@ export class BulletinsService {
         ? {
             moyenneSemestre: resultatSemestre.moyenneSemestre,
             creditsTotal: resultatSemestre.creditsTotal,
+            creditsAcquis: resultatSemestre.creditsAcquis,
             valide: resultatSemestre.valide,
           }
         : null,
@@ -178,6 +181,10 @@ export class BulletinsService {
     // Déterminer la décision jury
     const decisionJury = resultatAnnuel?.decisionJury ?? null;
 
+    const s5Data = semestresData.find((s) => s.semestre.code.includes('S5'));
+    const s6Data = semestresData.find((s) => s.semestre.code.includes('S6'));
+    const totalCreditsAcquis = resultats.reduce((sum, r) => sum + r.creditsAcquis, 0);
+
     return {
       etudiant: {
         id: etudiant.utilisateurId,
@@ -188,14 +195,30 @@ export class BulletinsService {
         lieuNaissance: etudiant.lieu_naissance,
         email: etudiant.utilisateur.email,
       },
-      semestres: semestresData,
-      resultatAnnuel: {
-        moyenneAnnuelle,
-        mention,
-        decisionJury,
-        creditsTotal: resultats.reduce((sum, r) => sum + r.creditsTotal, 0),
-        annee: resultatAnnuel?.annee ?? null,
-      },
+      anneeUniversitaire: resultatAnnuel?.annee ?? s5Data?.semestre?.anneeUniversitaire ?? s6Data?.semestre?.anneeUniversitaire ?? '',
+      semestre5: s5Data
+        ? {
+            libelle: s5Data.semestre.libelle,
+            moyenne: s5Data.resultat?.moyenneSemestre,
+            creditsAcquis: s5Data.resultat?.creditsAcquis ?? 0,
+            creditsTotal: s5Data.resultat?.creditsTotal ?? 30,
+            valide: s5Data.resultat?.valide ?? false,
+          }
+        : undefined,
+      semestre6: s6Data
+        ? {
+            libelle: s6Data.semestre.libelle,
+            moyenne: s6Data.resultat?.moyenneSemestre,
+            creditsAcquis: s6Data.resultat?.creditsAcquis ?? 0,
+            creditsTotal: s6Data.resultat?.creditsTotal ?? 30,
+            valide: s6Data.resultat?.valide ?? false,
+          }
+        : undefined,
+      moyenneAnnuelle,
+      mention,
+      decisionJury,
+      creditsTotal: resultats.reduce((sum, r) => sum + r.creditsTotal, 0),
+      creditsAcquis: totalCreditsAcquis,
     };
   }
 
@@ -293,5 +316,131 @@ export class BulletinsService {
     if (moyenne >= 12) return 'ASSEZ_BIEN';
     if (moyenne >= 10) return 'PASSABLE';
     return null;
+  }
+
+  // ─────────────────────────────────────────────
+  // PDF — BULLETIN INDIVIDUEL
+  // ─────────────────────────────────────────────
+  async getPdfBulletinEtudiant(etudiantId: string, semestreId: string): Promise<Buffer> {
+    const data = await this.getBulletinSemestre(etudiantId, semestreId);
+    const html = this.pdfService.genererHtmlBulletin(data);
+    return this.pdfService.genererPdf(html);
+  }
+
+  // ─────────────────────────────────────────────
+  // PDF — BULLETINS PAR CLASSE
+  // ─────────────────────────────────────────────
+  async getPdfBulletinsClasse(classeId: string, semestreId: string): Promise<Buffer> {
+    const classe = await this.prisma.classe.findUnique({ where: { id: classeId } });
+    if (!classe) throw new NotFoundException('Classe non trouvée');
+
+    const semestre = await this.prisma.semestre.findUnique({ where: { id: semestreId } });
+    if (!semestre) throw new NotFoundException('Semestre non trouvé');
+
+    const etudiants = await this.prisma.etudiant.findMany({
+      where: { classeId },
+      orderBy: { matricule: 'asc' },
+    });
+
+    if (etudiants.length === 0) throw new NotFoundException('Aucun étudiant dans cette classe');
+
+    // Générer un HTML avec un saut de page entre chaque bulletin
+    const htmlPages = await Promise.all(
+      etudiants.map(async (etudiant) => {
+        try {
+          const data = await this.getBulletinSemestre(etudiant.utilisateurId, semestreId);
+          return this.pdfService.genererHtmlBulletin(data);
+        } catch {
+          return null; // ignorer les étudiants sans données
+        }
+      }),
+    );
+
+    const pagesValides = htmlPages.filter(Boolean) as string[];
+    if (pagesValides.length === 0) throw new NotFoundException('Aucun bulletin disponible pour cette classe');
+
+    // Combiner tous les bulletins dans un seul HTML avec page-break
+    const htmlCombine = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+      <style>* { box-sizing:border-box; margin:0; padding:0; } .bulletin-page { page-break-after: always; }</style>
+      </head><body>${pagesValides.map((h, i) => {
+        // Extraire le contenu du body de chaque bulletin
+        const bodyMatch = h.match(/<body>([\s\S]*?)<\/body>/);
+        const content = bodyMatch ? bodyMatch[1] : h;
+        const isLast = i === pagesValides.length - 1;
+        return `<div class="${isLast ? '' : 'bulletin-page'}">${content}</div>`;
+      }).join('')}</body></html>`;
+
+    return this.pdfService.genererPdf(htmlCombine);
+  }
+
+  // ─────────────────────────────────────────────
+  // PDF — BULLETINS PAR FILIÈRE
+  // ─────────────────────────────────────────────
+  async getPdfBulletinsFiliere(filiereId: string, semestreId: string): Promise<Buffer> {
+    const filiere = await this.prisma.filiere.findUnique({ where: { id: filiereId } });
+    if (!filiere) throw new NotFoundException('Filière non trouvée');
+
+    const semestre = await this.prisma.semestre.findUnique({ where: { id: semestreId } });
+    if (!semestre) throw new NotFoundException('Semestre non trouvé');
+
+    const classes = await this.prisma.classe.findMany({ where: { filiereId } });
+    if (classes.length === 0) throw new NotFoundException('Aucune classe dans cette filière');
+
+    const classeIds = classes.map((c) => c.id);
+    const etudiants = await this.prisma.etudiant.findMany({
+      where: { classeId: { in: classeIds } },
+      orderBy: [{ classeId: 'asc' }, { matricule: 'asc' }],
+    });
+
+    if (etudiants.length === 0) throw new NotFoundException('Aucun étudiant dans cette filière');
+
+    const htmlPages = await Promise.all(
+      etudiants.map(async (etudiant) => {
+        try {
+          const data = await this.getBulletinSemestre(etudiant.utilisateurId, semestreId);
+          return this.pdfService.genererHtmlBulletin(data);
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    const pagesValides = htmlPages.filter(Boolean) as string[];
+    if (pagesValides.length === 0) throw new NotFoundException('Aucun bulletin disponible pour cette filière');
+
+    const htmlCombine = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+      <style>* { box-sizing:border-box; margin:0; padding:0; } .bulletin-page { page-break-after: always; }</style>
+      </head><body>${pagesValides.map((h, i) => {
+        const bodyMatch = h.match(/<body>([\s\S]*?)<\/body>/);
+        const content = bodyMatch ? bodyMatch[1] : h;
+        const isLast = i === pagesValides.length - 1;
+        return `<div class="${isLast ? '' : 'bulletin-page'}">${content}</div>`;
+      }).join('')}</body></html>`;
+
+    return this.pdfService.genererPdf(htmlCombine);
+  }
+
+  // ─────────────────────────────────────────────
+  // ARCHIVAGE DES BULLETINS
+  // ─────────────────────────────────────────────
+  async getArchives(etudiantId: string) {
+    return this.prisma.archiveBulletin.findMany({
+      where: { utilisateurId: etudiantId },
+      orderBy: { dateGeneration: 'desc' },
+      include: {
+        semestre: true
+      }
+    });
+  }
+
+  async archiveBulletin(data: { utilisateurId: string, semestreId?: string, type: string, donneesJson: any }) {
+    return this.prisma.archiveBulletin.create({
+      data: {
+        utilisateurId: data.utilisateurId,
+        semestreId: data.semestreId,
+        type: data.type,
+        donneesJson: data.donneesJson
+      }
+    });
   }
 }

@@ -14,6 +14,8 @@
  */
 
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -26,35 +28,13 @@ import { ProfilModule } from './profil/profil.module';
 import { BulletinsModule } from './bulletins/bulletins.module';
 import { ClassesModule } from './classes/classes.module';
 import { FilieresModule } from './filieres/filieres.module';
+import { ImportModule } from './import/import.module';
+import { MailModule } from './mail/mail.module';
 import { AppController } from './app.controller';
 
-// Imports pour le HealthController inline
-import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-
-/**
- * HealthController — Endpoint de vérification de l'état du serveur.
- *
- * Utilisé par Render.com pour monitorer la disponibilité de l'application.
- * Retourne le statut, le timestamp, la version et l'uptime du serveur.
- *
- * GET /health → { status: 'OK', timestamp, service, version, uptime }
- */
-@ApiTags('Health Check')
-@Controller()
-export class HealthController {
-  @Get('health')
-  @ApiOperation({ summary: 'Vérifier l\'état de l\'application' })
-  getHealth() {
-    return { 
-      status: 'OK', 
-      timestamp: new Date().toISOString(),
-      service: 'Bull ASUR API',
-      version: '1.0.0',
-      uptime: process.uptime()  // Temps de fonctionnement en secondes
-    };
-  }
-}
+import { HealthController } from './health/health.controller';
+import { DashboardController } from './dashboard/dashboard/dashboard.controller';
+import { DashboardService } from './dashboard/dashboard/dashboard.service';
 
 /**
  * AppModule — Module racine de l'application.
@@ -78,6 +58,10 @@ export class HealthController {
     ConfigModule.forRoot({
       isGlobal: true,  // Disponible dans tous les modules sans ré-import
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
     PrismaModule,              // Connexion base de données PostgreSQL via Prisma
     AuthModule,                // Authentification JWT + guards + stratégies
     MatieresModule,            // Gestion des matières (coefficient, crédits, UE)
@@ -89,10 +73,19 @@ export class HealthController {
     BulletinsModule,           // Génération des bulletins S5, S6, annuel
     ClassesModule,             // Gestion des classes / promotions scolaires
     FilieresModule,            // Gestion des filières
+    ImportModule,              // Import Excel (liste étudiants + relevé de notes)
+    MailModule,                // Envoi d'emails (identifiants, etc.)
   ],
   controllers: [
     HealthController,  // GET /health — monitoring
-    AppController,     // GET / — message d'accueil
+    AppController, DashboardController,     // GET / — message d'accueil
+  ],
+  providers: [
+    DashboardService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

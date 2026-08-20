@@ -179,6 +179,7 @@ export class CalculsService {
   async calculerResultatSemestre(utilisateurId: string, semestreId: string): Promise<{
     moyenneSemestre: number;
     creditsTotal: number;
+    creditsAcquis: number;
     valide: boolean;
   }> {
     // Récupérer toutes les UE du semestre avec leurs moyennes
@@ -199,24 +200,49 @@ export class CalculsService {
       throw new BadRequestException('Aucune UE trouvée pour ce semestre');
     }
 
-    // Calculer la moyenne pondérée du semestre
+    // 1. Calculer la moyenne pondérée du semestre
     let sommePonderee = 0;
-    let sommeCredits = 0;
-    let creditsTotal = 0;
+    let sommeCoefficients = 0;
+    let semestreCreditsTotal = 0;
 
     for (const ue of ues) {
       const moyenneUE = ue.moyenneUEs[0];
+      const coef = ue.coefficient ?? ue.credits ?? 1;
+      const credits = ue.credits ?? 0;
+      semestreCreditsTotal += credits;
+
       if (moyenneUE) {
-        sommePonderee += moyenneUE.moyenne * moyenneUE.creditsAcquis;
-        sommeCredits += moyenneUE.creditsAcquis;
-        creditsTotal += moyenneUE.creditsAcquis;
+        sommePonderee += moyenneUE.moyenne * coef;
+        sommeCoefficients += coef;
       }
     }
 
-    const moyenneSemestre = sommeCredits > 0 ? sommePonderee / sommeCredits : 0;
+    const moyenneSemestre = sommeCoefficients > 0 ? sommePonderee / sommeCoefficients : 0;
     const valide = moyenneSemestre >= 10; // Semestre valide si moyenne ≥ 10
 
-    // Mettre à jour la table ResultatSemestre
+    // 2. Mettre à jour la compensation pour chaque UE et calculer les crédits acquis
+    let totalCreditsAcquis = 0;
+    for (const ue of ues) {
+      const moyenneUE = ue.moyenneUEs[0];
+      if (moyenneUE) {
+        const creditsUE = ue.credits ?? 0;
+        const acquiseDirecte = moyenneUE.moyenne >= 10;
+        const compense = !acquiseDirecte && valide;
+        const acquise = acquiseDirecte || compense;
+        const creditsAcquis = acquise ? creditsUE : 0;
+        totalCreditsAcquis += creditsAcquis;
+
+        await this.prisma.moyenneUE.update({
+          where: { id: moyenneUE.id },
+          data: {
+            creditsAcquis,
+            compense,
+          },
+        });
+      }
+    }
+
+    // 3. Mettre à jour la table ResultatSemestre
     await this.prisma.resultatSemestre.upsert({
       where: {
         utilisateurId_semestreId: {
@@ -226,21 +252,24 @@ export class CalculsService {
       },
       update: {
         moyenneSemestre,
-        creditsTotal,
+        creditsTotal: semestreCreditsTotal,
+        creditsAcquis: totalCreditsAcquis,
         valide,
       },
       create: {
         utilisateurId,
         semestreId,
         moyenneSemestre,
-        creditsTotal,
+        creditsTotal: semestreCreditsTotal,
+        creditsAcquis: totalCreditsAcquis,
         valide,
       },
     });
 
     return {
       moyenneSemestre,
-      creditsTotal,
+      creditsTotal: semestreCreditsTotal,
+      creditsAcquis: totalCreditsAcquis,
       valide,
     };
   }
@@ -297,5 +326,80 @@ export class CalculsService {
     for (const ue of ues) {
       await this.calculerResultatSemestre(utilisateurId, ue.semestreId);
     }
+
+    // Recalculer le résultat annuel
+    await this.calculerResultatAnnuel(utilisateurId);
+  }
+
+  async calculerResultatAnnuel(utilisateurId: string): Promise<void> {
+    // Récupérer les résultats des semestres
+    const resultatsSemestres = await this.prisma.resultatSemestre.findMany({
+      where: { utilisateurId },
+      include: { semestre: true },
+    });
+
+    if (resultatsSemestres.length === 2) {
+      const rS5 = resultatsSemestres.find(r => r.semestre.code.includes('S5'));
+      const rS6 = resultatsSemestres.find(r => r.semestre.code.includes('S6'));
+
+      if (rS5 && rS6) {
+        const moyenneAnnuelle = (rS5.moyenneSemestre + rS6.moyenneSemestre) / 2;
+        const totalCreditsAcquis = rS5.creditsAcquis + rS6.creditsAcquis;
+        const annee = rS5.semestre.anneeUniversitaire;
+
+        // Mention
+        let mention: any = null;
+        if (moyenneAnnuelle >= 16) mention = 'TRES_BIEN';
+        else if (moyenneAnnuelle >= 14) mention = 'BIEN';
+        else if (moyenneAnnuelle >= 12) mention = 'ASSEZ_BIEN';
+        else if (moyenneAnnuelle >= 10) mention = 'PASSABLE';
+
+        // Décision du Jury
+        let decisionJury: any = 'REDOUBLE';
+        if (rS5.valide && rS6.valide) {
+          decisionJury = 'DIPLOME';
+        } else if (rS5.valide && !rS6.valide) {
+          // Reprise de soutenance : S5 validé (30 crédits) + UE6-1 validé (22 crédits) et UE6-2 non validé.
+          // Ce qui donne 52 crédits.
+          if (totalCreditsAcquis === 52) {
+            decisionJury = 'REPRISE_SOUTENANCE';
+          }
+        }
+
+        // Upsert ResultatAnnuel
+        await this.prisma.resultatAnnuel.upsert({
+          where: { utilisateurId },
+          update: {
+            moyenneAnnuelle,
+            annee,
+            decisionJury,
+            mention,
+          },
+          create: {
+            utilisateurId,
+            moyenneAnnuelle,
+            annee,
+            decisionJury,
+            mention,
+          },
+        });
+      }
+    }
+  }
+
+  async recalculerToutPourClasse(classeId: string) {
+    const etudiants = await this.prisma.etudiant.findMany({
+      where: { classeId },
+      select: { utilisateurId: true },
+    });
+
+    for (const etudiant of etudiants) {
+      await this.recalculerToutPourEtudiant(etudiant.utilisateurId);
+    }
+    
+    return { 
+      message: `Toutes les moyennes ont été recalculées pour les ${etudiants.length} étudiants de la classe`,
+      count: etudiants.length 
+    };
   }
 }
