@@ -313,8 +313,8 @@ model ResultatSemestre {
   utilisateurId   String
   semestreId      String
   moyenneSemestre Float
-  rang            Int?
-  appreciation    String?
+  rang            Int
+  appreciation    String
   creditsTotal    Int
   creditsAcquis   Int      @default(0)
   valide          Boolean
@@ -332,11 +332,11 @@ model ResultatAnnuel {
   id              String        @id @default(cuid())
   utilisateurId   String        @unique
   annee           String
-  moyenneAnnuelle Float?
-  rang            Int?
-  decisionJury    DecisionJury?
-  mention         Mention?
-  appreciation    String?
+  moyenneAnnuelle Float
+  rang            Int
+  decisionJury    DecisionJury
+  mention         Mention
+  appreciation    String
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
