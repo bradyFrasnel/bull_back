@@ -2,11 +2,13 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "skipLibCheck": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["node"]
   },
   "exclude": [
     "node_modules",
     "dist",
-    "test"
+    "test",
+    "**/*spec.ts"
   ]
 }

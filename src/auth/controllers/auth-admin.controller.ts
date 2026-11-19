@@ -14,9 +14,16 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/role.enum';
 import * as XLSX from 'xlsx';
 
+export interface UploadedExcelFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype?: string;
+  size?: number;
+}
+
 const excelUploadOptions = {
   storage: memoryStorage(),
-  fileFilter: (_req: any, file: Express.Multer.File, cb: any) => {
+  fileFilter: (_req: any, file: UploadedExcelFile, cb: any) => {
     const ext = file.originalname.toLowerCase();
     if (ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
       cb(null, true);
@@ -89,7 +96,7 @@ export class AuthAdminController {
   @ApiOperation({ summary: 'Importer des étudiants depuis un fichier Excel (Admin/Secretariat)' })
   @ApiResponse({ status: 201, description: 'Import terminé — rapport retourné' })
   async importEtudiants(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedExcelFile,
     @Body('classeId') classeId?: string,
     @Body('defaultPassword') defaultPassword?: string,
   ) {
@@ -122,7 +129,7 @@ export class AuthAdminController {
   @ApiOperation({ summary: 'Importer des enseignants depuis un fichier Excel (Admin/Secretariat)' })
   @ApiResponse({ status: 201, description: 'Import terminé — rapport retourné' })
   async importEnseignants(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedExcelFile,
     @Body('defaultPassword') defaultPassword?: string,
   ) {
     if (!file) {

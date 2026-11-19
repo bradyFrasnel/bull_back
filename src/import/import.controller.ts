@@ -68,7 +68,7 @@ export class ImportController {
   })
   @ApiResponse({ status: 400, description: 'Fichier invalide ou non reconnu' })
   async importerExcel(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype?: string; size?: number },
     @Body('classeId') classeId?: string,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier fourni.');
