@@ -1,18 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import request from 'supertest';
 import { AuthModule } from '../../src/auth/auth.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
+import { MailModule } from '../../src/mail/mail.module';
 import { PrismaService } from '../../src/prisma/prisma.service';
+import { MailService } from '../../src/mail/mail.service';
 import { JwtService } from '@nestjs/jwt';
 // Mock bcrypt
 jest.mock('bcrypt');
 const bcrypt = require('bcrypt');
 
 // Mock PrismaService pour les tests
-const mockPrisma = {
+const mockPrisma: any = {
   utilisateur: {
     findUnique: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn(async (args?: any) => {
+      const res = await mockPrisma.utilisateur.findUnique(args);
+      if (!res) return [];
+      const allowedRoles = args?.where?.role?.in;
+      if (allowedRoles && !allowedRoles.includes(res.role)) return [];
+      return [res];
+    }),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -75,10 +85,19 @@ describe('Auth Integration Tests', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AuthModule],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        PrismaModule,
+        MailModule,
+        AuthModule,
+      ],
     })
     .overrideProvider(PrismaService)
     .useValue(mockPrisma)
+    .overrideProvider(MailService)
+    .useValue({ sendCredentials: jest.fn().mockResolvedValue({ success: true }) })
+    .overrideProvider(JwtService)
+    .useValue({ sign: jest.fn().mockReturnValue('jwt-token'), verify: jest.fn() })
     .compile();
 
     app = moduleFixture.createNestApplication();
@@ -89,7 +108,7 @@ describe('Auth Integration Tests', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    if (app) await app.close();
     jest.clearAllMocks();
   });
 

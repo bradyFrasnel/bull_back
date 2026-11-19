@@ -27,7 +27,7 @@ export class EtudiantsService {
   constructor(private prisma: PrismaService) {}
 
   /** Valeurs par défaut pour les champs facultatifs non fournis à l'inscription. */
-  private static readonly DEFAULT_PASSWORD = 'pass1234';
+  private static readonly DEFAULT_PASSWORD = process.env.DEFAULT_ETUDIANT_PASSWORD || 'pass1234';
   private static readonly DEFAULT_LIEU = '-';
   private static readonly DEFAULT_BAC_TYPE = '';
   private static readonly DEFAULT_PROVENANCE = '';
@@ -47,8 +47,9 @@ export class EtudiantsService {
   }
 
   private normalizeCreateDto(dto: CreateEtudiantDto): Required<
-    Pick<CreateEtudiantDto, 'nom' | 'prenom' | 'date_naissance'>
+    Pick<CreateEtudiantDto, 'nom' | 'prenom'>
   > & {
+    date_naissance: Date | null;
     matricule: string;
     email: string;
     password: string;
@@ -64,17 +65,19 @@ export class EtudiantsService {
 
     if (!nom) throw new BadRequestException('Le nom est obligatoire.');
     if (!prenom) throw new BadRequestException('Le prénom est obligatoire.');
-    if (!dto.date_naissance) throw new BadRequestException('La date de naissance est obligatoire.');
 
-    const parsedDate = new Date(dto.date_naissance);
-    if (isNaN(parsedDate.getTime())) {
-      throw new BadRequestException('La date de naissance est invalide.');
+    let parsedDate: Date | null = null;
+    if (dto.date_naissance) {
+      const d = new Date(dto.date_naissance);
+      if (!isNaN(d.getTime())) {
+        parsedDate = d;
+      }
     }
 
     return {
       nom,
       prenom,
-      date_naissance: dto.date_naissance,
+      date_naissance: parsedDate,
       matricule: dto.matricule?.trim() || this.generateMatricule(nom),
       email: dto.email?.trim() || this.generateEmail(nom, prenom),
       password: dto.password || EtudiantsService.DEFAULT_PASSWORD,
@@ -117,7 +120,7 @@ export class EtudiantsService {
       utilisateurId = utilisateur.id;
     }
 
-    const dateNaiss = new Date(normalized.date_naissance);
+    const dateNaiss = normalized.date_naissance;
 
     if (existingEtudiant) {
       // Mettre à jour l'étudiant existant s'il existe déjà
@@ -162,6 +165,104 @@ export class EtudiantsService {
         },
         classe: { select: { id: true, nom: true, code: true } },
       },
+    });
+  }
+
+  /**
+   * Retourne uniquement les étudiants dont l'enseignant a la charge :
+   * Enseignant -> MatiereEnseignant -> Matiere -> UE -> Semestre -> SemestreClasse -> Classe -> Etudiant
+   * (ainsi que les étudiants ayant déjà une évaluation dans une des matières de l'enseignant).
+   */
+  async findForEnseignant(enseignantUserId: string, matiereId?: string, classeId?: string) {
+    // 1. Récupérer les matières assignées à cet enseignant
+    const affectations = await this.prisma.matiereEnseignant.findMany({
+      where: {
+        utilisateurId: enseignantUserId,
+        ...(matiereId ? { matiereId } : {}),
+      },
+      include: {
+        matiere: {
+          include: {
+            uniteEnseignement: {
+              include: {
+                semestre: {
+                  include: {
+                    classes: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Si l'enseignant n'a aucune matière assignée (ou n'est pas assigné à la matière demandée) -> 0 étudiant
+    if (affectations.length === 0) {
+      return [];
+    }
+
+    const matiereIds = affectations.map((a) => a.matiereId);
+    const classeIdsSet = new Set<string>();
+
+    for (const aff of affectations) {
+      const semClasses = aff.matiere?.uniteEnseignement?.semestre?.classes || [];
+      for (const sc of semClasses) {
+        if (sc.classeId) {
+          classeIdsSet.add(sc.classeId);
+        }
+      }
+    }
+
+    let allowedClasseIds = [...classeIdsSet];
+    if (classeId) {
+      allowedClasseIds = allowedClasseIds.filter((id) => id === classeId);
+    }
+
+    // Construire la condition : étudiants des classes rattachées aux matières de l'enseignant
+    // OU étudiants ayant déjà une évaluation saisie dans ces matières (si pas de filtre classeId strict)
+    const orConditions: any[] = [];
+    if (allowedClasseIds.length > 0) {
+      orConditions.push({ classeId: { in: allowedClasseIds } });
+    }
+    if (!classeId && matiereIds.length > 0) {
+      orConditions.push({
+        utilisateur: {
+          evaluations: {
+            some: { matiereId: { in: matiereIds } },
+          },
+        },
+      });
+    }
+
+    if (orConditions.length === 0) {
+      return [];
+    }
+
+    return this.prisma.etudiant.findMany({
+      where: {
+        OR: orConditions,
+      },
+      include: {
+        utilisateur: {
+          select: {
+            id: true,
+            email: true,
+            nom: true,
+            role: true,
+          },
+        },
+        classe: {
+          select: {
+            id: true,
+            nom: true,
+            code: true,
+            anneeUniversitaire: true,
+            filiere: { select: { id: true, nom: true, code: true } },
+          },
+        },
+      },
+      orderBy: { matricule: 'asc' },
     });
   }
 
@@ -271,27 +372,44 @@ export class EtudiantsService {
     // Supprime l'utilisateur ; en base, CASCADE efface étudiant + évaluations, absences, moyennes, résultats, affectations matière.
     return this.prisma.utilisateur.delete({
       where: { id: utilisateurId },
+      select: { id: true, nom: true, email: true, role: true },
     });
   }
 
   async findByMatricule(matricule: string) {
     return this.prisma.etudiant.findFirst({
       where: { matricule },
-      include: { utilisateur: true },
+      include: {
+        utilisateur: {
+          select: { id: true, nom: true, email: true, role: true },
+        },
+        classe: { select: { id: true, nom: true, code: true } },
+      },
     });
   }
 
   async findByUserId(utilisateurId: string) {
     return this.prisma.etudiant.findUnique({
       where: { utilisateurId },
-      include: { utilisateur: true },
+      include: {
+        utilisateur: {
+          select: { id: true, nom: true, email: true, role: true },
+        },
+        classe: { select: { id: true, nom: true, code: true } },
+      },
     });
   }
 
   async findByNom(nom: string) {
-    return this.prisma.utilisateur.findUnique({
-      where: { nom },
-      include: { etudiant: true },
+    return this.prisma.utilisateur.findMany({
+      where: { nom, role: 'ETUDIANT' },
+      select: {
+        id: true,
+        nom: true,
+        email: true,
+        role: true,
+        etudiant: true,
+      },
     });
   }
 }

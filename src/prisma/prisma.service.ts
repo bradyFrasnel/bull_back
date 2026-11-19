@@ -17,23 +17,26 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    const maxAttempts = Number(process.env.PRISMA_CONNECT_RETRIES ?? 5);
+    // Connexion non-bloquante au démarrage : permet au serveur HTTP (/health, Swagger)
+    // de démarrer immédiatement même si Supabase est en veille ou lent à répondre.
+    this.connectWithRetry().catch(() => {});
+  }
+
+  private async connectWithRetry() {
+    const maxAttempts = Number(process.env.PRISMA_CONNECT_RETRIES ?? 3);
     const delayMs = Number(process.env.PRISMA_CONNECT_RETRY_MS ?? 2000);
-    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         await this.$connect();
-        // Warm up: run a trivial query to ensure the connection pool is active
         await this.$queryRaw`SELECT 1`;
         if (attempt > 1) {
-          this.logger.log(`Connexion base de données établie (tentative ${attempt}/${maxAttempts}`);
+          this.logger.log(`Connexion base de données établie (tentative ${attempt}/${maxAttempts})`);
         } else {
           this.logger.log('Connexion base de données établie');
         }
         return;
-      } catch (error) {
-        lastError = error;
+      } catch {
         if (attempt < maxAttempts) {
           this.logger.warn(
             `Connexion DB échouée (${attempt}/${maxAttempts}), nouvel essai dans ${delayMs} ms…`,
@@ -45,14 +48,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     this.logger.error(
       [
-        'Impossible de joindre PostgreSQL (P1001).',
-        '• Vérifiez DATABASE_URL dans .env',
-        '• En local : testez sans VPN, ou utilisez le pooler Session (port 5432) plutôt que Transaction (6543)',
-        '• Supabase : Settings → Database → copier l’URI « Session pooler » ou « Direct »',
-        '• Transaction pooler (6543) : ajouter ?pgbouncer=true à l’URL',
+        'Impossible de joindre PostgreSQL (P1001) au démarrage — Prisma réessaiera à la prochaine requête.',
+        '• Vérifiez DATABASE_URL dans .env (et que le projet Supabase n\'est pas en pause / VPN désactivé)',
       ].join('\n'),
     );
-    throw lastError;
   }
 
   async onModuleDestroy() {

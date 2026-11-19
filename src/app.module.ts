@@ -14,9 +14,12 @@
  */
 
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
+import { AppCacheService } from './common/cache/app-cache.service';
+import { HttpCacheInterceptor } from './common/interceptors/http-cache.interceptor';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { MatieresModule } from './matieres/matieres.module';
@@ -58,10 +61,13 @@ import { DashboardService } from './dashboard/dashboard/dashboard.service';
     ConfigModule.forRoot({
       isGlobal: true,  // Disponible dans tous les modules sans ré-import
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000, // Fenêtre de 60 secondes
+        limit: 120, // 120 requêtes / minute par IP en usage normal
+      },
+    ]),
     PrismaModule,              // Connexion base de données PostgreSQL via Prisma
     AuthModule,                // Authentification JWT + guards + stratégies
     MatieresModule,            // Gestion des matières (coefficient, crédits, UE)
@@ -82,9 +88,14 @@ import { DashboardService } from './dashboard/dashboard/dashboard.service';
   ],
   providers: [
     DashboardService,
+    AppCacheService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: CustomThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpCacheInterceptor,
     },
   ],
 })

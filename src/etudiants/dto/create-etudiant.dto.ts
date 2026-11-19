@@ -35,10 +35,11 @@ export class CreateEtudiantDto {
   @IsString()
   password?: string;
 
-  @ApiProperty({ description: 'Date de naissance', example: '2000-05-15' })
+  @ApiPropertyOptional({ description: 'Date de naissance (optionnelle en import)', example: '2000-05-15' })
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  date_naissance: Date;
+  date_naissance?: Date;
 
   @ApiPropertyOptional({ description: 'Lieu de naissance (extrait du champ Excel combiné)', example: 'Libreville' })
   @IsOptional()

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CalculsService } from '../calculs/calculs.service';
 import { BulletinPdfService } from './bulletin-pdf.service';
@@ -10,6 +10,12 @@ export class BulletinsService {
     private calculsService: CalculsService,
     private pdfService: BulletinPdfService,
   ) {}
+
+  private assertCanGenerateBulkBulletins(actor?: { id?: string; role?: string }) {
+    if (actor && !['ADMINISTRATEUR', 'SECRETARIAT'].includes(actor.role || '')) {
+      throw new ForbiddenException('Accès refusé : rôle administrateur ou secrétariat requis');
+    }
+  }
 
   // ─────────────────────────────────────────────
   // BULLETIN SEMESTRE
@@ -330,7 +336,12 @@ export class BulletinsService {
   // ─────────────────────────────────────────────
   // PDF — BULLETINS PAR CLASSE
   // ─────────────────────────────────────────────
-  async getPdfBulletinsClasse(classeId: string, semestreId: string): Promise<Buffer> {
+  async getPdfBulletinsClasse(
+    classeId: string,
+    semestreId: string,
+    actor?: { id?: string; role?: string },
+  ): Promise<Buffer> {
+    this.assertCanGenerateBulkBulletins(actor);
     const classe = await this.prisma.classe.findUnique({ where: { id: classeId } });
     if (!classe) throw new NotFoundException('Classe non trouvée');
 
@@ -376,7 +387,12 @@ export class BulletinsService {
   // ─────────────────────────────────────────────
   // PDF — BULLETINS PAR FILIÈRE
   // ─────────────────────────────────────────────
-  async getPdfBulletinsFiliere(filiereId: string, semestreId: string): Promise<Buffer> {
+  async getPdfBulletinsFiliere(
+    filiereId: string,
+    semestreId: string,
+    actor?: { id?: string; role?: string },
+  ): Promise<Buffer> {
+    this.assertCanGenerateBulkBulletins(actor);
     const filiere = await this.prisma.filiere.findUnique({ where: { id: filiereId } });
     if (!filiere) throw new NotFoundException('Filière non trouvée');
 

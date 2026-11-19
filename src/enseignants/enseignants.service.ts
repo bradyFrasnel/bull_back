@@ -127,20 +127,31 @@ export class EnseignantsService {
     // Supprimer l'utilisateur parent — cascade supprime automatiquement l'enseignant
     return this.prisma.utilisateur.delete({
       where: { id: utilisateurId },
+      select: { id: true, nom: true, email: true, role: true },
     });
   }
 
   async findByNom(nom: string) {
-    return this.prisma.utilisateur.findUnique({
-      where: { nom },
-      include: { enseignant: true },
+    return this.prisma.utilisateur.findMany({
+      where: { nom, role: 'ENSEIGNANT' },
+      select: {
+        id: true,
+        nom: true,
+        email: true,
+        role: true,
+        enseignant: true,
+      },
     });
   }
 
   async findByUserId(utilisateurId: string) {
     return this.prisma.enseignant.findUnique({
       where: { utilisateurId },
-      include: { utilisateur: true },
+      include: {
+        utilisateur: {
+          select: { id: true, nom: true, email: true, role: true },
+        },
+      },
     });
   }
 
@@ -161,7 +172,13 @@ export class EnseignantsService {
       include: {
         matiere: true,
         utilisateur: {
-          include: { enseignant: true },
+          select: {
+            id: true,
+            nom: true,
+            email: true,
+            role: true,
+            enseignant: true,
+          },
         },
       },
     });
@@ -180,7 +197,27 @@ export class EnseignantsService {
     return this.prisma.matiereEnseignant.findMany({
       where: { utilisateurId: enseignantId },
       include: {
-        matiere: true,
+        matiere: {
+          include: {
+            uniteEnseignement: {
+              include: {
+                semestre: {
+                  include: {
+                    classes: {
+                      include: {
+                        classe: {
+                          include: {
+                            filiere: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -190,7 +227,13 @@ export class EnseignantsService {
       where: { matiereId },
       include: {
         utilisateur: {
-          include: { enseignant: true },
+          select: {
+            id: true,
+            nom: true,
+            email: true,
+            role: true,
+            enseignant: true,
+          },
         },
       },
     });

@@ -33,7 +33,7 @@ import { MailService } from '../mail/mail.service';
 export class AuthService {
   private async verifyPassword(passwordEnClair: string, passwordHash: string, nom: string, userId: string): Promise<boolean> {
     if (passwordHash.startsWith('$import$')) {
-      const sel = 'bull_asur_import_2026';
+      const sel = process.env.IMPORT_PASSWORD_SALT || 'bull_asur_import_2026';
       const expectedHash = '$import$' + crypto
         .createHash('sha256')
         .update(`${passwordEnClair}_${nom.toLowerCase()}_${sel}`)
@@ -59,22 +59,41 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  private async authenticateUser(nom: string, passwordEnClair: string, allowedRoles: string[], includeRelations: any = {}) {
-    const user = await this.prisma.utilisateur.findUnique({
-      where: { nom },
-      include: includeRelations
+  private async authenticateUser(identifiantRaw: string, passwordEnClair: string, allowedRoles: string[], includeRelations: any = {}) {
+    const identifiant = (identifiantRaw || '').trim();
+    if (!identifiant) {
+      throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    // Recherche souple et insensible à la casse : Nom, Email, Matricule (enseignant/étudiant) ou Prénom
+    const users = await this.prisma.utilisateur.findMany({
+      where: {
+        role: { in: allowedRoles as any },
+        OR: [
+          { nom: { equals: identifiant, mode: 'insensitive' } },
+          { email: { equals: identifiant, mode: 'insensitive' } },
+          { enseignant: { matricule: { equals: identifiant, mode: 'insensitive' } } },
+          { enseignant: { prenom: { equals: identifiant, mode: 'insensitive' } } },
+          { etudiant: { matricule: { equals: identifiant, mode: 'insensitive' } } },
+          { etudiant: { prenom: { equals: identifiant, mode: 'insensitive' } } },
+        ],
+      },
+      include: includeRelations,
     });
 
-    if (!user || !allowedRoles.includes(user.role)) {
+    if (!users || users.length === 0) {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const isPasswordValid = await this.verifyPassword(passwordEnClair, user.password, user.nom, user.id);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Identifiants invalides');
+    // Tester le mot de passe contre chaque utilisateur correspondant (supporte les homonymes)
+    for (const user of users) {
+      const isPasswordValid = await this.verifyPassword(passwordEnClair, user.password, user.nom, user.id);
+      if (isPasswordValid) {
+        return user;
+      }
     }
 
-    return user;
+    throw new UnauthorizedException('Identifiants invalides');
   }
 
   // ──────────────────────────────────────────────────────────
@@ -148,19 +167,19 @@ export class AuthService {
   async createEtudiant(createEtudiantDto: CreateEtudiantDto) {
     const etudiant = await this.etudiantsService.create(createEtudiantDto);
     
-    // Le mot de passe par défaut est défini dans EtudiantsService ('pass1234') s'il n'est pas fourni.
-    const password = createEtudiantDto.password || 'pass1234';
+    // Le mot de passe par défaut est lu depuis l'environnement (fallback dans EtudiantsService).
+    const password = createEtudiantDto.password || process.env.DEFAULT_ETUDIANT_PASSWORD || 'pass1234';
     
-    // On envoie l'email avec le mot de passe en clair (seulement à la création)
+    // On envoie l'email avec le mot de passe en clair en tâche de fond (ne bloque pas les imports en masse)
     const emailToUse = createEtudiantDto.email || etudiant.utilisateur?.email;
     if (emailToUse) {
-      await this.mailService.sendCredentials(
+      this.mailService.sendCredentials(
         emailToUse,
         etudiant.utilisateur?.nom || createEtudiantDto.nom,
         etudiant.prenom,
         password,
         'Étudiant'
-      );
+      ).catch(() => {});
     }
     
     // On retourne l'étudiant avec le mot de passe généré pour l'afficher sur le frontend
@@ -194,18 +213,20 @@ export class AuthService {
         specialite: createEnseignantDto.specialite,
       },
       include: {
-        utilisateur: true
+        utilisateur: {
+          select: { id: true, nom: true, email: true, role: true },
+        },
       }
     });
 
     if (createEnseignantDto.email) {
-      await this.mailService.sendCredentials(
+      this.mailService.sendCredentials(
         createEnseignantDto.email,
         createEnseignantDto.nom,
         createEnseignantDto.prenom,
         createEnseignantDto.password,
         'Enseignant'
-      );
+      ).catch(() => {});
     }
 
     // On retourne l'enseignant avec le mot de passe pour l'afficher sur le frontend
@@ -346,5 +367,161 @@ export class AuthService {
         }
       }
     });
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // IMPORT EN LOT — ÉTUDIANTS
+  // ──────────────────────────────────────────────────────────
+  /**
+   * Crée plusieurs étudiants à partir de données extraites d'un fichier Excel.
+   * Chaque étudiant reçoit un mot de passe par défaut et un email avec ses identifiants.
+   *
+   * @param data - Tableau d'objets avec les infos étudiants
+   * @param classeId - ID de la classe (optionnel)
+   * @param defaultPassword - Mot de passe par défaut (défaut: 'etudiant2026')
+   * @returns Rapport d'import { created, failed, details }
+   */
+  async bulkCreateEtudiants(
+    data: any[],
+    classeId?: string,
+    defaultPassword: string = 'etudiant2026',
+  ) {
+    const results = { created: 0, failed: 0, details: [] as any[] };
+
+    for (const row of data) {
+      try {
+        const nom = (row.nom || row.Nom || row.NOM || row['Nom (s)'] || row['Nom(s)'] || '').toString().trim();
+        const prenom = (row.prenom || row.Prenom || row.Prénom || row.PRENOM || row['Prénom (s)'] || row['Prénom(s)'] || row['Prenom (s)'] || '').toString().trim();
+        const email = (row.email || row.Email || row.EMAIL || '').toString().trim() || undefined;
+        let dateNaissance: any = row.date_naissance || row['Date de naissance'];
+        let lieuNaissance = (row.lieu_naissance || row['Lieu de naissance'] || '').toString().trim() || undefined;
+        const combinedDateLieu = (row['Date et Lieu de naissance'] || row['Date et lieu de naissance'] || '').toString().trim();
+        if (!dateNaissance && combinedDateLieu) {
+          const parts = combinedDateLieu.split(/\s+[àaÀ]\s+/);
+          dateNaissance = parts[0]?.trim();
+          if (!lieuNaissance && parts.length > 1) {
+            lieuNaissance = parts.slice(1).join(' ').trim();
+          }
+        }
+        let parsedDate: Date | undefined = undefined;
+        if (dateNaissance) {
+          if (dateNaissance instanceof Date && !isNaN(dateNaissance.getTime())) {
+            parsedDate = dateNaissance;
+          } else {
+            const s = String(dateNaissance).trim();
+            const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            const d = dmy ? new Date(`${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`) : new Date(s);
+            if (!isNaN(d.getTime())) parsedDate = d;
+          }
+        }
+        const bacType = (row.bac_type || row['Type Bac'] || row.bac || '').toString().trim() || undefined;
+        const anneeBac = row.annee_bac || row['Année Bac'];
+        const provenance = (row.provenance || row.Provenance || row['Établissement d\'origine'] || '').toString().trim() || undefined;
+        const matricule = (row.matricule || row.Matricule || '').toString().trim() || undefined;
+
+        if (!nom && !prenom) {
+          continue; // Ligne vide ignorée
+        }
+        if (!nom || !prenom) {
+          results.failed++;
+          results.details.push({ nom: nom || '?', prenom: prenom || '?', error: 'Nom et prénom requis' });
+          continue;
+        }
+
+        const etudiant = await this.createEtudiant({
+          nom,
+          prenom,
+          email,
+          password: defaultPassword,
+          date_naissance: parsedDate,
+          lieu_naissance: lieuNaissance,
+          bac_type: bacType,
+          annee_bac: anneeBac ? parseInt(String(anneeBac), 10) : undefined,
+          provenance,
+          matricule,
+          classeId: classeId || undefined,
+        });
+
+        results.created++;
+        results.details.push({
+          nom, prenom,
+          matricule: etudiant.matricule || matricule,
+          email: etudiant.utilisateur?.email || email,
+          status: 'created',
+          emailSent: true,
+        });
+      } catch (err: any) {
+        results.failed++;
+        results.details.push({
+          nom: row.nom || row.Nom || '?',
+          prenom: row.prenom || row.Prenom || '?',
+          error: err.message || 'Erreur inconnue',
+        });
+      }
+    }
+
+    return results;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // IMPORT EN LOT — ENSEIGNANTS
+  // ──────────────────────────────────────────────────────────
+  /**
+   * Crée plusieurs enseignants à partir de données extraites d'un fichier Excel.
+   */
+  async bulkCreateEnseignants(
+    data: any[],
+    defaultPassword: string = 'enseignant2026',
+  ) {
+    const results = { created: 0, failed: 0, details: [] as any[] };
+
+    for (const row of data) {
+      try {
+        const nom = (row.nom || row.Nom || row.NOM || row['Nom (s)'] || row['Nom(s)'] || '').toString().trim();
+        const prenom = (row.prenom || row.Prenom || row.Prénom || row.PRENOM || row['Prénom (s)'] || row['Prénom(s)'] || row['Prenom (s)'] || '').toString().trim();
+        const rawEmail = (row.email || row.Email || row.EMAIL || '').toString().trim();
+        const cleanNom = nom.toLowerCase().replace(/[^a-z0-9]/g, '') || 'enseignant';
+        const cleanPrenom = prenom.toLowerCase().replace(/[^a-z0-9]/g, '') || 'inconnu';
+        const email = rawEmail || `${cleanNom}.${cleanPrenom}.${Date.now().toString().slice(-5)}@inptic.ga`;
+        const matricule = (row.matricule || row.Matricule || '').toString().trim() || `ENS${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 90 + 10)}`;
+        const specialite = (row.specialite || row.Spécialité || row.Specialite || '').toString().trim() || undefined;
+
+        if (!nom && !prenom) {
+          continue;
+        }
+        if (!nom || !prenom) {
+          results.failed++;
+          results.details.push({ nom: nom || '?', prenom: prenom || '?', error: 'Nom et prénom requis' });
+          continue;
+        }
+
+        const enseignant = await this.createEnseignant({
+          nom,
+          prenom,
+          email,
+          password: defaultPassword,
+          matricule,
+          specialite,
+        });
+
+        results.created++;
+        results.details.push({
+          nom, prenom,
+          matricule: enseignant.matricule || matricule,
+          email,
+          status: 'created',
+          emailSent: true,
+        });
+      } catch (err: any) {
+        results.failed++;
+        results.details.push({
+          nom: row.nom || row.Nom || '?',
+          prenom: row.prenom || row.Prenom || '?',
+          error: err.message || 'Erreur inconnue',
+        });
+      }
+    }
+
+    return results;
   }
 }

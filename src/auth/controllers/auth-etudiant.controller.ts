@@ -1,5 +1,6 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '../auth.service';
 import { LoginEtudiantDto } from '../dto/login-etudiant.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -13,39 +14,23 @@ export class AuthEtudiantController {
   ) {}
 
   @Post('login')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion étudiant' })
   @ApiBody({ type: LoginEtudiantDto, description: 'Identifiants de connexion étudiant' })
   @ApiResponse({ status: 200, description: 'Connexion réussie', schema: {
     example: {
-      access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      access_token: '<jwt_access_token>',
       etudiant: {
         id: 'cm123',
-        nom: 'Martin',
-        prenom: 'Marie',
+        nom: 'MOUK',
+        prenom: 'Brady',
         matricule: '2024ASUR001',
-        email: 'marie.martin@asur.fr'
+        email: 'moukbrady@gmail.com'
       }
     }
   }})
   async loginEtudiant(@Body() loginEtudiantDto: LoginEtudiantDto) {
     return this.authService.loginEtudiant(loginEtudiantDto);
-  }
-
-  @Put('change-password')
-  @ApiOperation({ summary: 'Changer le mot de passe étudiant' })
-  @ApiBody({ 
-    description: 'Ancien et nouveau mot de passe',
-    schema: {
-      example: {
-        oldPassword: 'oldpassword123',
-        newPassword: 'newpassword456'
-      }
-    }
-  })
-  @ApiResponse({ status: 200, description: 'Mot de passe changé avec succès' })
-  async changePassword(@Body() body: { oldPassword: string; newPassword: string }) {
-    // Logique à implémenter
-    return { message: 'Mot de passe changé avec succès' };
   }
 }

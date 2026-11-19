@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEvaluationDto, TypeEvaluation } from './dto/create-evaluation.dto';
 import { SaveReleveDto } from './dto/releve-matiere.dto';
@@ -248,27 +248,71 @@ export class EvaluationsService {
     });
   }
 
+  /**
+   * Vérifie qu'un enseignant est bien affecté à la matière demandée.
+   */
+  async assertEnseignantAssignedToMatiere(enseignantUserId: string, matiereId: string): Promise<void> {
+    const assigned = await this.prisma.matiereEnseignant.findUnique({
+      where: {
+        utilisateurId_matiereId: {
+          utilisateurId: enseignantUserId,
+          matiereId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!assigned) {
+      throw new ForbiddenException("Accès refusé : vous n'êtes pas affecté à cette matière.");
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // RELEVÉ MATIÈRE — GET
-  // Retourne tous les étudiants avec leurs notes pour une matière donnée
+  // Retourne les étudiants rattachés aux classes du semestre de cette matière
   // ─────────────────────────────────────────────────────────────────────────
   async getReleveMatiere(matiereId: string) {
-    // Récupérer tous les étudiants
-    const etudiants = await this.prisma.etudiant.findMany({
-      include: {
-        utilisateur: { select: { id: true, nom: true } },
-      },
-      orderBy: { matricule: 'asc' },
-    });
-
     const [evaluations, absencesRows, matiere] = await Promise.all([
       this.prisma.evaluation.findMany({ where: { matiereId } }),
       this.prisma.absence.findMany({ where: { matiereId } }),
       this.prisma.matiere.findUnique({
         where: { id: matiereId },
-        include: { uniteEnseignement: { include: { semestre: true } } },
+        include: {
+          uniteEnseignement: {
+            include: {
+              semestre: {
+                include: {
+                  classes: true,
+                },
+              },
+            },
+          },
+        },
       }),
     ]);
+
+    const classeIds =
+      matiere?.uniteEnseignement?.semestre?.classes
+        ?.map((sc) => sc.classeId)
+        .filter(Boolean) || [];
+
+    // Filtrer les étudiants par les classes qui suivent le semestre de cette matière
+    // (ou qui ont déjà une note dans cette matière). Si aucune classe n'est liée au semestre, fallback sur tous.
+    const etudiants = await this.prisma.etudiant.findMany({
+      where:
+        classeIds.length > 0
+          ? {
+              OR: [
+                { classeId: { in: classeIds } },
+                { utilisateur: { evaluations: { some: { matiereId } } } },
+              ],
+            }
+          : undefined,
+      include: {
+        utilisateur: { select: { id: true, nom: true } },
+        classe: { select: { id: true, nom: true, code: true } },
+      },
+      orderBy: { matricule: 'asc' },
+    });
 
     const releve = etudiants.map((etudiant) => {
       const evals = evaluations.filter(

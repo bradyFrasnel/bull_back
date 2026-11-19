@@ -8,6 +8,7 @@ import {
   Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -31,6 +32,7 @@ export class ImportController {
   constructor(private readonly importService: ImportService) {}
 
   @Post('excel')
+  @Throttle({ default: { limit: 6, ttl: 60000 } })
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
   @UseInterceptors(
     FileInterceptor('file', {

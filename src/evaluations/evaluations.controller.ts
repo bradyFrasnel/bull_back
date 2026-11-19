@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { EvaluationsService } from './evaluations.service';
 import { CreateEvaluationDto, TypeEvaluation } from './dto/create-evaluation.dto';
@@ -33,6 +33,7 @@ export class EvaluationsController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Obtenir une évaluation par son ID' })
   @ApiResponse({ status: 200, description: 'Évaluation trouvée' })
   findOne(@Param('id') id: string) {
@@ -40,9 +41,13 @@ export class EvaluationsController {
   }
 
   @Get('etudiant/:etudiantId')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Lister les évaluations d\'un étudiant' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations de l\'étudiant' })
-  findByEtudiant(@Param('etudiantId') etudiantId: string) {
+  findByEtudiant(@Param('etudiantId') etudiantId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres évaluations');
+    }
     return this.evaluationsService.findByEtudiant(etudiantId);
   }
 
@@ -50,7 +55,10 @@ export class EvaluationsController {
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Lister les évaluations d\'une matière' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations de la matière' })
-  findByMatiere(@Param('matiereId') matiereId: string) {
+  async findByMatiere(@Param('matiereId') matiereId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ENSEIGNANT) {
+      await this.evaluationsService.assertEnseignantAssignedToMatiere(req.user.id, matiereId);
+    }
     return this.evaluationsService.findByMatiere(matiereId);
   }
 
@@ -63,12 +71,17 @@ export class EvaluationsController {
   }
 
   @Get('etudiant/:etudiantId/matiere/:matiereId')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Lister les évaluations d\'un étudiant pour une matière' })
   @ApiResponse({ status: 200, description: 'Liste des évaluations de l\'étudiant pour la matière' })
   findByEtudiantAndMatiere(
     @Param('etudiantId') etudiantId: string,
     @Param('matiereId') matiereId: string,
+    @Req() req: any,
   ) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres évaluations');
+    }
     return this.evaluationsService.findByEtudiantAndMatiere(etudiantId, matiereId);
   }
 
@@ -105,7 +118,7 @@ export class EvaluationsController {
         matiere: { id: 'mat123', libelle: 'Anglais technique', coefficient: 1, credits: 2, ue: 'UE5-1', semestre: 'Semestre 5' },
         releve: [
           {
-            utilisateurId: 'cm123', nom: 'Martin', prenom: 'Sophie', matricule: '2024ASUR001',
+            utilisateurId: 'cm123', nom: 'MOUK', prenom: 'Brady', matricule: '2024ASUR001',
             noteCC: 14, noteExamen: 16, noteRattrapage: null,
             evalIdCC: 'eval1', evalIdExamen: 'eval2', evalIdRattrapage: null,
             absences: 2, absenceId: 'abs1',
@@ -114,7 +127,10 @@ export class EvaluationsController {
       },
     },
   })
-  getReleveMatiere(@Param('matiereId') matiereId: string) {
+  async getReleveMatiere(@Param('matiereId') matiereId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ENSEIGNANT) {
+      await this.evaluationsService.assertEnseignantAssignedToMatiere(req.user.id, matiereId);
+    }
     return this.evaluationsService.getReleveMatiere(matiereId);
   }
 
@@ -145,10 +161,14 @@ export class EvaluationsController {
       example: { sauvegardes: 4, absencesSauvegardees: 2, erreurs: 0 },
     },
   })
-  saveReleveMatiere(
+  async saveReleveMatiere(
     @Param('matiereId') matiereId: string,
     @Body() saveReleveDto: SaveReleveDto,
+    @Req() req: any,
   ) {
+    if (req.user?.role === UserRole.ENSEIGNANT) {
+      await this.evaluationsService.assertEnseignantAssignedToMatiere(req.user.id, matiereId);
+    }
     return this.evaluationsService.saveReleveMatiere(matiereId, saveReleveDto);
   }
 }

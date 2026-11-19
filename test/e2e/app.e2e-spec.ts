@@ -14,16 +14,16 @@ describe('App E2E Tests', () => {
   const testUsers = {
     etudiant: {
       id: 'etudiant123',
-      nom: 'mmartin2024',
-      email: 'martin@test.com',
+      nom: 'mouk2024',
+      email: 'moukbrady@gmail.com',
       password: '$2b$10$hashedpassword',
       role: 'ETUDIANT',
       createdAt: new Date(),
     },
     enseignant: {
       id: 'enseignant123',
-      nom: 'jdupontweb',
-      email: 'dupont@test.com',
+      nom: 'mouk',
+      email: 'moukbrady@gmail.com',
       password: '$2b$10$hashedpassword',
       role: 'ENSEIGNANT',
       createdAt: new Date(),
@@ -49,7 +49,7 @@ describe('App E2E Tests', () => {
   const testEtudiant = {
     id: 'etudiant123',
     utilisateurId: 'etudiant123',
-    prenom: 'Martin',
+    prenom: 'MOUK',
     matricule: '2024ASUR001',
     date_naissance: new Date('2000-01-01'),
     lieu_naissance: 'Test City',
@@ -61,7 +61,7 @@ describe('App E2E Tests', () => {
   const testEnseignant = {
     id: 'enseignant123',
     utilisateurId: 'enseignant123',
-    prenom: 'Dupont',
+    prenom: 'Brady',
     matricule: 'ENS2024001',
     specialite: 'Mathématiques',
   };
@@ -113,7 +113,7 @@ describe('App E2E Tests', () => {
         const loginResponse = await request(app.getHttpServer())
           .post('/auth/etudiant/login')
           .send({
-            nom: 'mmartin2024',
+            nom: 'mouk2024',
             password: 'password123'
           })
           .expect(200);
@@ -500,7 +500,7 @@ describe('App E2E Tests', () => {
 
       const loginResponse = await request(app.getHttpServer())
         .post('/auth/etudiant/login')
-        .send({ nom: 'mmartin2024', password: 'password123' })
+        .send({ nom: 'mmouk2024', password: 'password123' })
         .expect(200);
 
       const token = loginResponse.body.access_token;

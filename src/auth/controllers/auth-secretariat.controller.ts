@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from '../auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -14,6 +15,7 @@ export class AuthSecretariatController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Connexion secrétariat' })
   @ApiBody({ type: LoginSecretariatDto, description: 'Données de connexion secrétariat' })
   @ApiResponse({ 
@@ -21,12 +23,12 @@ export class AuthSecretariatController {
     description: 'Connexion réussie',
     schema: {
       example: {
-        access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        access_token: "<jwt_access_token>",
         secretariat: {
           id: "cm123abc",
           utilisateurId: "cm123abc",
           nom: "admin0",
-          email: "secretariat@render.fr",
+          email: "teablissementllm@gmail.com",
           role: "SECRETARIAT",
           createdAt: "2024-04-24T10:30:00Z"
         }

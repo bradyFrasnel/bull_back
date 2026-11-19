@@ -77,6 +77,7 @@ async function bootstrap() {
     credentials: true,  // Autoriser l'envoi de cookies/credentials
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Retry-After', 'X-Cache'],
   });
 
   // 3. VALIDATION GLOBALE — ValidationPipe

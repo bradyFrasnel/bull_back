@@ -21,9 +21,9 @@ export class EnseignantsController {
   @ApiResponse({ status: 201, description: 'Enseignant créé avec succès', schema: {
     example: {
       id: 'cm123',
-      nom: 'Dupont',
-      prenom: 'Jean',
-      email: 'jean.dupont@asur.fr',
+      nom: 'MOUK',
+      prenom: 'Brady',
+      email: 'moukbrady@gmail.com',
       matricule: 'ENS2024001',
       specialite: 'Développement Web',
       createdAt: '2024-01-15T10:30:00.000Z'

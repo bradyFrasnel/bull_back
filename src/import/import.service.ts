@@ -57,10 +57,11 @@ export class ImportService {
   // Hash rapide pour l'import — mot de passe unique par étudiant (pas bcrypt)
   // L'étudiant devra changer son mot de passe à la première connexion
   private hasherMotDePasse(nom: string): string {
-    const sel = 'bull_asur_import_2026';
+    const sel = process.env.IMPORT_PASSWORD_SALT || 'bull_asur_import_2026';
+    const defaultPwd = process.env.DEFAULT_ETUDIANT_PASSWORD || 'pass1234';
     return '$import$' + crypto
       .createHash('sha256')
-      .update(`pass1234_${nom.toLowerCase()}_${sel}`)
+      .update(`${defaultPwd}_${nom.toLowerCase()}_${sel}`)
       .digest('hex')
       .substring(0, 40);
   }
@@ -487,15 +488,13 @@ export class ImportService {
       if (noteCC === null && noteExamen === null && noteRattrapage === null) continue;
 
       try {
-        const utilisateurId = await this.upsertEtudiant(nom, prenom, classeId);
+        const { utilisateurId, isNew } = await this.upsertEtudiant(nom, prenom, classeId);
         if (!utilisateurId) continue;
 
-        // Vérifier si c'est une création ou mise à jour
-        const existing = await this.prisma.etudiant.findUnique({
-          where: { utilisateurId }, select: { utilisateurId: true }
-        });
-        if (existing) res.nbEtudiantsMisAJour++;
-        else res.nbEtudiantsCreees++;
+        if (!utilisateursTraites.has(utilisateurId)) {
+          if (isNew) res.nbEtudiantsCreees++;
+          else res.nbEtudiantsMisAJour++;
+        }
 
         const saisie = 'import-excel';
 
@@ -539,43 +538,65 @@ export class ImportService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // UPSERT ÉTUDIANT
+  // UPSERT ÉTUDIANT (distingue les homonymes par couple nom + prénom)
   // ─────────────────────────────────────────────────────────────────────────
-  private async upsertEtudiant(nom: string, prenom: string, classeId: string): Promise<string> {
-    // Chercher par nom exact
+  private async upsertEtudiant(
+    nom: string,
+    prenom: string,
+    classeId: string,
+  ): Promise<{ utilisateurId: string; isNew: boolean }> {
+    const cleanPrenom = (prenom || nom).trim();
+
+    // Chercher par couple (nom + prénom) parmi les étudiants pour ne jamais fusionner deux homonymes
     let user = await this.prisma.utilisateur.findFirst({
-      where: { nom },
-      select: { id: true },
+      where: {
+        nom: { equals: nom, mode: 'insensitive' },
+        role: 'ETUDIANT',
+        etudiant: {
+          prenom: { equals: cleanPrenom, mode: 'insensitive' },
+        },
+      },
+      select: { id: true, etudiant: { select: { utilisateurId: true } } },
     });
 
+    let isNew = false;
+
     if (!user) {
+      isNew = true;
       const password = this.hasherMotDePasse(nom);
-      const email = this.genererEmail(nom, prenom);
-      user = await this.prisma.utilisateur.create({
+      const email = this.genererEmail(nom, cleanPrenom);
+      const created = await this.prisma.utilisateur.create({
         data: { nom, password, email, role: 'ETUDIANT' },
         select: { id: true },
       });
+      user = { id: created.id, etudiant: null };
     }
 
     const utilisateurId = user.id;
 
-    await this.prisma.etudiant.upsert({
-      where: { utilisateurId },
-      update: { classeId },
-      create: {
-        utilisateurId,
-        prenom: prenom || nom,
-        matricule: this.genererMatricule(nom),
-        date_naissance: new Date('2000-01-01'),
-        lieu_naissance: '-',
-        bac_type: '',
-        annee_bac: 0,
-        provenance: '',
-        classeId,
-      },
-    });
+    if (!user.etudiant) {
+      isNew = true;
+      await this.prisma.etudiant.create({
+        data: {
+          utilisateurId,
+          prenom: cleanPrenom,
+          matricule: this.genererMatricule(nom),
+          date_naissance: new Date('2000-01-01'),
+          lieu_naissance: '-',
+          bac_type: '',
+          annee_bac: 0,
+          provenance: '',
+          classeId,
+        },
+      });
+    } else {
+      await this.prisma.etudiant.update({
+        where: { utilisateurId },
+        data: { classeId },
+      });
+    }
 
-    return utilisateurId;
+    return { utilisateurId, isNew };
   }
 
   // ─────────────────────────────────────────────────────────────────────────

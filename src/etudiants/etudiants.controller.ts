@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Query, Req, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { EtudiantsService } from './etudiants.service';
 import { CreateEtudiantDto } from './dto/create-etudiant.dto';
@@ -24,25 +24,36 @@ export class EtudiantsController {
 
   @Get()
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
-  @ApiOperation({ summary: 'Lister tous les étudiants avec pagination' })
+  @ApiOperation({ summary: 'Lister les étudiants (filtrés automatiquement pour un enseignant selon ses matières/classes)' })
   @ApiResponse({ status: 200, description: 'Liste des étudiants' })
   findAll(
+    @Req() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('matiereId') matiereId?: string,
+    @Query('classeId') classeId?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : undefined;
     const limitNum = limit ? parseInt(limit, 10) : undefined;
+    if (req.user?.role === UserRole.ENSEIGNANT) {
+      return this.etudiantsService.findForEnseignant(req.user.id, matiereId, classeId);
+    }
     return this.etudiantsService.findAll(pageNum, limitNum);
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Obtenir un étudiant par son ID' })
   @ApiResponse({ status: 200, description: 'Étudiant trouvé' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== id) {
+      throw new ForbiddenException('Accès non autorisé au dossier d\'un autre étudiant');
+    }
     return this.etudiantsService.findOne(id);
   }
 
   @Get('matricule/:matricule')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT)
   @ApiOperation({ summary: 'Obtenir un étudiant par son matricule' })
   @ApiResponse({ status: 200, description: 'Étudiant trouvé' })
   findByMatricule(@Param('matricule') matricule: string) {
@@ -66,9 +77,13 @@ export class EtudiantsController {
   }
 
   @Get('user/:userId')
+  @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ENSEIGNANT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Obtenir un étudiant par son ID utilisateur' })
   @ApiResponse({ status: 200, description: 'Étudiant trouvé' })
-  findByUserId(@Param('userId') userId: string) {
+  findByUserId(@Param('userId') userId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== userId) {
+      throw new ForbiddenException('Accès non autorisé au dossier d\'un autre étudiant');
+    }
     return this.etudiantsService.findByUserId(userId);
   }
 }

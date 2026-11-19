@@ -1,12 +1,12 @@
-import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Res, UseGuards, Req, ForbiddenException, Body, Post } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { BulletinsService } from './bulletins.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/role.enum';
-import { Body, Post } from '@nestjs/common';
 
 @ApiTags('Bulletins')
 @Controller('bulletins')
@@ -28,7 +28,11 @@ export class BulletinsController {
   getBulletinSemestre(
     @Param('etudiantId') etudiantId: string,
     @Param('semestreId') semestreId: string,
+    @Req() req: any,
   ) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres bulletins');
+    }
     return this.bulletinsService.getBulletinSemestre(etudiantId, semestreId);
   }
 
@@ -41,7 +45,10 @@ export class BulletinsController {
     description: 'Bulletin annuel avec les deux semestres, moyenne annuelle, mention et décision jury',
   })
   @ApiResponse({ status: 404, description: 'Étudiant non trouvé' })
-  getBulletinAnnuel(@Param('etudiantId') etudiantId: string) {
+  getBulletinAnnuel(@Param('etudiantId') etudiantId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres bulletins');
+    }
     return this.bulletinsService.getBulletinAnnuel(etudiantId);
   }
 
@@ -59,6 +66,7 @@ export class BulletinsController {
   // PDF — BULLETIN INDIVIDUEL
   // ─────────────────────────────────────────────
   @Get('pdf/etudiant/:etudiantId/semestre/:semestreId')
+  @Throttle({ default: { limit: 12, ttl: 60000 } })
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Générer le bulletin PDF d\'un étudiant pour un semestre' })
   @ApiParam({ name: 'etudiantId', description: 'ID utilisateur de l\'étudiant' })
@@ -67,8 +75,12 @@ export class BulletinsController {
   async getPdfBulletinEtudiant(
     @Param('etudiantId') etudiantId: string,
     @Param('semestreId') semestreId: string,
+    @Req() req: any,
     @Res() res: Response,
   ) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez télécharger que vos propres bulletins');
+    }
     const pdf = await this.bulletinsService.getPdfBulletinEtudiant(etudiantId, semestreId);
     res.set({
       'Content-Type': 'application/pdf',
@@ -82,6 +94,7 @@ export class BulletinsController {
   // PDF — BULLETINS PAR CLASSE
   // ─────────────────────────────────────────────
   @Get('pdf/classe/:classeId/semestre/:semestreId')
+  @Throttle({ default: { limit: 6, ttl: 60000 } })
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
   @ApiOperation({ summary: 'Générer les bulletins PDF de toute une classe pour un semestre' })
   @ApiParam({ name: 'classeId', description: 'ID de la classe' })
@@ -90,9 +103,10 @@ export class BulletinsController {
   async getPdfBulletinsClasse(
     @Param('classeId') classeId: string,
     @Param('semestreId') semestreId: string,
+    @Req() req: any,
     @Res() res: Response,
   ) {
-    const pdf = await this.bulletinsService.getPdfBulletinsClasse(classeId, semestreId);
+    const pdf = await this.bulletinsService.getPdfBulletinsClasse(classeId, semestreId, req.user);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="bulletins-classe-${classeId}-${semestreId}.pdf"`,
@@ -105,6 +119,7 @@ export class BulletinsController {
   // PDF — BULLETINS PAR FILIÈRE
   // ─────────────────────────────────────────────
   @Get('pdf/filiere/:filiereId/semestre/:semestreId')
+  @Throttle({ default: { limit: 6, ttl: 60000 } })
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT)
   @ApiOperation({ summary: 'Générer les bulletins PDF de toute une filière pour un semestre' })
   @ApiParam({ name: 'filiereId', description: 'ID de la filière' })
@@ -113,9 +128,10 @@ export class BulletinsController {
   async getPdfBulletinsFiliere(
     @Param('filiereId') filiereId: string,
     @Param('semestreId') semestreId: string,
+    @Req() req: any,
     @Res() res: Response,
   ) {
-    const pdf = await this.bulletinsService.getPdfBulletinsFiliere(filiereId, semestreId);
+    const pdf = await this.bulletinsService.getPdfBulletinsFiliere(filiereId, semestreId, req.user);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="bulletins-filiere-${filiereId}-${semestreId}.pdf"`,
@@ -131,7 +147,10 @@ export class BulletinsController {
   @Roles(UserRole.ADMINISTRATEUR, UserRole.SECRETARIAT, UserRole.ETUDIANT)
   @ApiOperation({ summary: 'Obtenir les archives de bulletins d\'un étudiant' })
   @ApiParam({ name: 'etudiantId', description: 'ID utilisateur de l\'étudiant' })
-  async getArchives(@Param('etudiantId') etudiantId: string) {
+  async getArchives(@Param('etudiantId') etudiantId: string, @Req() req: any) {
+    if (req.user?.role === UserRole.ETUDIANT && req.user.id !== etudiantId) {
+      throw new ForbiddenException('Vous ne pouvez consulter que vos propres archives de bulletins');
+    }
     return this.bulletinsService.getArchives(etudiantId);
   }
 
