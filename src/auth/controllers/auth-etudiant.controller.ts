@@ -14,7 +14,7 @@ export class AuthEtudiantController {
   ) {}
 
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion étudiant' })
   @ApiBody({ type: LoginEtudiantDto, description: 'Identifiants de connexion étudiant' })

@@ -21,15 +21,36 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     throttlerLimitDetail: ThrottlerLimitDetail,
   ): Promise<void> {
     const res = context.switchToHttp().getResponse();
+    // Dans @nestjs/throttler v6, timeToBlockExpire et timeToExpire sont déjà exprimés en SECONDES,
+    // tandis que ttl et blockDuration sont en MILLISECONDES.
+    const rawBlockSec = Number(throttlerLimitDetail?.timeToBlockExpire || 0);
+    const rawExpireSec = Number(throttlerLimitDetail?.timeToExpire || 0);
+    const fallbackTtlSec = Math.ceil(Number(throttlerLimitDetail?.ttl || 300000) / 1000);
+
     const retryAfterSec = Math.max(
       1,
-      Math.ceil((throttlerLimitDetail?.timeToExpire || throttlerLimitDetail?.ttl || 60000) / 1000),
+      rawBlockSec > 0
+        ? Math.ceil(rawBlockSec)
+        : rawExpireSec > 0
+          ? Math.ceil(rawExpireSec)
+          : fallbackTtlSec,
     );
+
     if (res && typeof res.setHeader === 'function') {
       res.setHeader('Retry-After', String(retryAfterSec));
     }
+
+    const minutes = Math.floor(retryAfterSec / 60);
+    const seconds = retryAfterSec % 60;
+    const durationText =
+      minutes > 0
+        ? seconds > 0
+          ? `${minutes}m ${String(seconds).padStart(2, '0')}s`
+          : `${minutes} minute${minutes > 1 ? 's' : ''}`
+        : `${retryAfterSec} seconde${retryAfterSec > 1 ? 's' : ''}`;
+
     throw new ThrottlerException(
-      `Trop de tentatives ou de requêtes rapprochées. Veuillez patienter ${retryAfterSec} secondes avant de réessayer.`,
+      `Trop de tentatives ou de requêtes rapprochées. Veuillez patienter ${durationText} avant de réessayer.`,
     );
   }
 }

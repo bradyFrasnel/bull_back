@@ -15,7 +15,7 @@ export class AuthSecretariatController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @ApiOperation({ summary: 'Connexion secrétariat' })
   @ApiBody({ type: LoginSecretariatDto, description: 'Données de connexion secrétariat' })
   @ApiResponse({ 
