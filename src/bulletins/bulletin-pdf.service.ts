@@ -13,7 +13,7 @@ export class BulletinPdfService {
     });
     try {
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'load' });
       const buffer = await page.pdf({
         format: 'A4',
         printBackground: true,
