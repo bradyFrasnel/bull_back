@@ -40,7 +40,7 @@ export class AuthAdminController {
   constructor(private readonly authService: AuthService) { }
 
   @Post('login')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion administrateur' })
   @ApiBody({ type: LoginAdminDto })

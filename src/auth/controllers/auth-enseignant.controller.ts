@@ -10,7 +10,7 @@ export class AuthEnseignantController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion enseignant' })
   @ApiBody({ type: LoginEnseignantDto, description: 'Identifiants de connexion enseignant' })
